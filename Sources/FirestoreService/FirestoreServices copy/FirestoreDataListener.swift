@@ -167,7 +167,7 @@ public class FirestoreDataListener<T: Codable>{
 }
 public class FirestoreDataLoader<T: Codable> {
     
-    var query: Query
+    public var query: Query
     public init(query: Query){
         self.query = query
     }
