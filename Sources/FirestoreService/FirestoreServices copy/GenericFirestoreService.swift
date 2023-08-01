@@ -90,8 +90,8 @@ public class GenericFirestoreDocumentService<T: Codable, Err: Error> {
         self.firestoreDataWriter = FirestoreDocumentWriter<T,T>(document: documentReference)
         self.errorHandler = errorHandler
     }
-    var firestoreListener: FirestoreDocumentListener<T>
-    var firestoreDataWriter: FirestoreDocumentWriter<T,T>
+    public var firestoreListener: FirestoreDocumentListener<T>
+    public var firestoreDataWriter: FirestoreDocumentWriter<T,T>
     
     public func delete() throws {
        try firestoreDataWriter.delete()

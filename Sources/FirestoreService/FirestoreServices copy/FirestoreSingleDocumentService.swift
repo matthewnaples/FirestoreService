@@ -8,7 +8,7 @@
 import Foundation
 import FirebaseFirestore
 
-class FirestoreDocumentListener<T: Codable>{
+public class FirestoreDocumentListener<T: Codable>{
 
     let decodingProblemThreshold: Double = 0.5
     var document: FirebaseDocument
@@ -16,7 +16,7 @@ class FirestoreDocumentListener<T: Codable>{
 //    let errorMapper: ErrorMapper
 //    typealias ErrorMapper = ((Error) -> Err)
 
-    init(document: FirebaseDocument){
+    public init(document: FirebaseDocument){
         self.document = document
         
     }
