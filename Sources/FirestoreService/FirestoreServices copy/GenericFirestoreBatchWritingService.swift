@@ -31,8 +31,8 @@ public class GenericFirestoreBatchWritingService<T: Identifiable & Codable,U: Id
         self.firestoreDataWriter = FirestoreDataWriter<T,T>(collection: collectionToWriteTo)
         self.errorHandler = errorHandler
     }
-    var firestoreListener: FirestoreDataListener<T>
-    var firestoreDataWriter: FirestoreDataWriter<T,T>
+    public var firestoreListener: FirestoreDataListener<T>
+    public var firestoreDataWriter: FirestoreDataWriter<T,T>
     
     public func delete(_ item: T) throws {
        try firestoreDataWriter.delete( item)

@@ -35,8 +35,8 @@ public class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writ
         self.firestoreDataWriter = writer
         self.errorHandler = errorHandler
     }
-    var firestoreListener: FirestoreDataListener<T>
-    var firestoreDataWriter: Writer
+    public var firestoreListener: FirestoreDataListener<T>
+    public var firestoreDataWriter: Writer
     
     public func delete(_ item: T) throws {
        try firestoreDataWriter.delete( item)
