@@ -16,7 +16,7 @@ public class FirestoreDataListener<T: Codable>{
     }
     let decodingProblemThreshold: Double = 0.5
     private let id = Int.random(in: 1...10000)
-    var query: Query
+    public var query: Query
     var listenerRegistrations: [UUID: ListenerRegistration] =  [:]{
         didSet{
             print("firestorelistener \(id) now has \(listenerRegistrations.values.count)")
