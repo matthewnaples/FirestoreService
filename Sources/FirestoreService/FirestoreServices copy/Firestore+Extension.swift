@@ -28,8 +28,6 @@ extension DocumentReference: FirebaseDocument{
         let item = try doc.data(as: T.self)
         return item
     }
-    
-    
 }
 public protocol FirebaseDocument{
     func setData<T>(from: T, callback: ((Error?) -> Void)?) throws  where T : Encodable
