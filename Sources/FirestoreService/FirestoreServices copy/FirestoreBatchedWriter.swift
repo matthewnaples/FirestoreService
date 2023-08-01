@@ -8,20 +8,20 @@
 import Foundation
 import FirebaseFirestore
 // This will write two objects to firestore in a batch. The second object is to be placed in a subcollection of the first.
-class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & Identifiable, U: Codable & Identifiable>: FirestoreWriter where  Item.ID == String,T.ID == String, U.ID == String{
-    func save(_ item: Item) throws {
+public class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & Identifiable, U: Codable & Identifiable>: FirestoreWriter where  Item.ID == String,T.ID == String, U.ID == String{
+    public func save(_ item: Item) throws {
         let (documentModel1, documentModel2) = itemMapper(item)
         try batchSave(item1: documentModel1, item2: documentModel2)
     }
     
-    func delete(_ item: Item) throws {
+    public func delete(_ item: Item) throws {
         let (documentModel1, documentModel2) = itemMapper(item)
         
         try batchDelete(item1: documentModel1, item2: documentModel2)
     }
     
 
-    init(collection1: CollectionReference, collection2: CollectionReference, itemMapper: @escaping (Item) -> (T,[U])){
+    public init(collection1: CollectionReference, collection2: CollectionReference, itemMapper: @escaping (Item) -> (T,[U])){
         db = Firestore.firestore()
         self.collection1 = collection1
         self.collection2 = collection2
@@ -34,7 +34,7 @@ class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & Identifi
 
     
     ///saves item1 to collection2 and item2 to collection2
-    func batchSave(item1: T, item2: [U]) throws{
+    public func batchSave(item1: T, item2: [U]) throws{
         // Get new write batch
         let batch = db.batch()
         
@@ -57,7 +57,7 @@ class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & Identifi
     }
     
     ///saves item1 to collection2 and item2 to collection2
-    func batchSave(item1: T, item2: [U]) async throws{
+    public func batchSave(item1: T, item2: [U]) async throws{
         // Get new write batch
         let batch = db.batch()
 
@@ -79,7 +79,7 @@ class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & Identifi
 
     }
     /// deletes item1 and item2 in a batch.
-    func batchDelete(item1: T, item2: [U]) throws{
+    public func batchDelete(item1: T, item2: [U]) throws{
         // Get new write batch
         let batch = db.batch()
         // Set the value of item1 in collection 1
@@ -94,7 +94,7 @@ class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & Identifi
         batch.commit()
     }
     /// deletes item1 and item2 in a batch asynchronously
-    func batchDeleteAsync(item1: T, item2: [U]) async throws{
+    public func batchDeleteAsync(item1: T, item2: [U]) async throws{
         // Get new write batch
         let batch = db.batch()
         // Set the value of item1 in collection 1

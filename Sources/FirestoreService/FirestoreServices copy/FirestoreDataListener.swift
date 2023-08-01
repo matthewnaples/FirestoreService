@@ -9,7 +9,7 @@ import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-class FirestoreDataListener<T: Codable>{
+public class FirestoreDataListener<T: Codable>{
     deinit{
         let registrations = listenerRegistrations.values
         registrations.forEach{$0.remove()}
@@ -25,7 +25,7 @@ class FirestoreDataListener<T: Codable>{
 //    let errorMapper: ErrorMapper
 //    typealias ErrorMapper = ((Error) -> Err)
 
-    init(query: Query){
+    public init(query: Query){
         self.query = query
     }
     
@@ -128,34 +128,34 @@ class FirestoreDataListener<T: Codable>{
         return registration
     }
 
-    func subscribe(_ onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
+    public func subscribe(_ onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
         let listenerId = UUID()
         self.listenerRegistrations[listenerId] = getListener( appendedQuery: nil, handler: onUpdate)
         print("firestoreListener added subscriber \(listenerId) \(type(of: T.self)) current subscription count \(listenerRegistrations.values.count)")
         return listenerId
     }
-    func subscribeToChanges(_ onUpdate: @escaping (Result<[(DocumentChangeType, T)],DSError>) -> Void) -> UUID {
+    public func subscribeToChanges(_ onUpdate: @escaping (Result<[(DocumentChangeType, T)],DSError>) -> Void) -> UUID {
         let listenerId = UUID()
         self.listenerRegistrations[listenerId] = getDocChangesListener( handler: onUpdate)
         return listenerId
     }
   
     
-    func unsubscribe(_ subscriptionId: UUID) {
+    public func unsubscribe(_ subscriptionId: UUID) {
         if let listener = self.listenerRegistrations.removeValue(forKey: subscriptionId){
             listener.remove()
         }
         print("firestoreListener unsubscribed \(subscriptionId)... current subscription count \(listenerRegistrations.values.count)")
     }
     ///loads all data from the query and maps them to throws if documents cannot be retrieved or decoded
-    func loadData(source: FirestoreSource) async throws -> [T]{
+    public func loadData(source: FirestoreSource) async throws -> [T]{
         let querySnapshot = try await query.getDocuments(source: source)
         return try querySnapshot.documents.compactMap{doc in
             return try doc.data(as: T.self)
         }
     }
     
-    func subscribeOnDatesBetween(startDate: Date, and endDate: Date,dateFieldPath: String,onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
+    public func subscribeOnDatesBetween(startDate: Date, and endDate: Date,dateFieldPath: String,onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
         let listenerId = UUID()
         let appendedQuery = self.query
             .whereFieldIsBetween(dateFieldPath, startDate: startDate, endDate: endDate)
@@ -165,15 +165,15 @@ class FirestoreDataListener<T: Codable>{
     }
     typealias Item = T
 }
-class FirestoreDataLoader<T: Codable> {
+public class FirestoreDataLoader<T: Codable> {
     
     var query: Query
-    init(query: Query){
+    public init(query: Query){
         self.query = query
     }
     
     ///loads all data from the query and maps them to throws if documents cannot be retrieved or decoded
-    func loadData(source: FirestoreSource) async throws -> [T]{
+    public func loadData(source: FirestoreSource) async throws -> [T]{
         let querySnapshot = try await query.getDocuments(source: source)
         return try querySnapshot.documents.compactMap{doc in
             return try doc.data(as: T.self)
@@ -183,7 +183,7 @@ class FirestoreDataLoader<T: Codable> {
 }
 
 
-enum DSError: Error{
+public enum DSError: Error{
     case NotFound(String)
     case AlreadyExists(String)
     case CouldNotDecode(String, [CodingProblem])

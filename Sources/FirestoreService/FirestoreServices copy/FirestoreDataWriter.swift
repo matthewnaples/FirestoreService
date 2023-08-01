@@ -17,12 +17,12 @@ public class FirestoreDataWriter<T, FirestoreDocumentModel: Codable & Identifiab
 //    typealias ErrorMapper = ((Error) -> Err)
 //    let errorMapper: ErrorMapper
     let mapper: FireStoreMapper<T, FirestoreDocumentModel>
-    init(collection: FirebaseCollection, mapper: @escaping FireStoreMapper<T, FirestoreDocumentModel>){
+    public init(collection: FirebaseCollection, mapper: @escaping FireStoreMapper<T, FirestoreDocumentModel>){
         self.collection = collection
 //        self.errorMapper = errorMapper
         self.mapper = mapper
     }
-    init(collection: FirebaseCollection) where T == FirestoreDocumentModel{
+    public init(collection: FirebaseCollection) where T == FirestoreDocumentModel{
         self.collection = collection
         self.mapper = {return $0}
     }

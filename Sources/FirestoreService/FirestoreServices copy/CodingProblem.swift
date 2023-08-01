@@ -8,11 +8,11 @@
 import Foundation
 import FirebaseFirestore
 //import FirebaseFirestoreSwift
-struct CodingProblem{
+public struct CodingProblem{
     let problemQuerySnapshot: QueryDocumentSnapshot?
     let problemDocumentSnapshot: DocumentSnapshot?
     let error: Error
-    init(problemQuerySnapshot: QueryDocumentSnapshot, error: Error){
+    public init(problemQuerySnapshot: QueryDocumentSnapshot, error: Error){
         self.problemQuerySnapshot = problemQuerySnapshot
         self.error = error
         self.problemDocumentSnapshot = nil
@@ -20,7 +20,7 @@ struct CodingProblem{
     }
     
     
-    init(problemDocumentSnapshot: DocumentSnapshot, error: Error){
+    public init(problemDocumentSnapshot: DocumentSnapshot, error: Error){
         self.problemDocumentSnapshot = problemDocumentSnapshot
         self.error = error
         self.problemQuerySnapshot = nil

@@ -14,23 +14,23 @@ import Firebase
 //    associatedtype Err: Error
 //    static func createGeneralError() -> Err
 //}
-class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writer: FirestoreWriter> where T.ID == String, Writer.Item == T{
-    func unsubscribe(_ subscriptionId: UUID) {
+public class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writer: FirestoreWriter> where T.ID == String, Writer.Item == T{
+    public func unsubscribe(_ subscriptionId: UUID) {
         firestoreListener.unsubscribe(subscriptionId)
     }
     
-    func save(_ items: [T])  throws {
+    public func save(_ items: [T])  throws {
         for item in items{
             try  self.save(item)
         }
     }
     
-    func save(_ item: T)  throws {
+    public func save(_ item: T)  throws {
         try  firestoreDataWriter.save(item)
     }
     var errorHandler: (Error) -> Err
 
-    init(query: Query, writer: Writer, errorHandler: @escaping (Error) -> Err){
+    public init(query: Query, writer: Writer, errorHandler: @escaping (Error) -> Err){
         self.firestoreListener = FirestoreDataListener(query: query)
         self.firestoreDataWriter = writer
         self.errorHandler = errorHandler
@@ -38,11 +38,11 @@ class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writer: Fir
     var firestoreListener: FirestoreDataListener<T>
     var firestoreDataWriter: Writer
     
-    func delete(_ item: T) throws {
+    public func delete(_ item: T) throws {
        try firestoreDataWriter.delete( item)
     }
     
-    func subscribe(onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {
+    public func subscribe(onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {
         let subscriptionId =  firestoreListener.subscribe { [unowned self] result in
             switch result{
             case .success(let items):
@@ -57,7 +57,7 @@ class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writer: Fir
         }
         return subscriptionId
     }
-    func subscribeToChanges(onUpdate: @escaping (Result<[(DocumentChangeType, T)], Error>) -> Void) -> UUID {
+    public func subscribeToChanges(onUpdate: @escaping (Result<[(DocumentChangeType, T)], Error>) -> Void) -> UUID {
         let subscriptionId =  firestoreListener.subscribeToChanges { [weak self] result in
             switch result{
             case .success(let items):
@@ -76,16 +76,16 @@ class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writer: Fir
 }
 
 
-class GenericFirestoreDocumentService<T: Codable, Err: Error> {
-    func unsubscribe(_ subscriptionId: UUID) {
+public class GenericFirestoreDocumentService<T: Codable, Err: Error> {
+    public func unsubscribe(_ subscriptionId: UUID) {
         firestoreListener.unsubscribe(subscriptionId)
     }
     
-    func save(_ item: T)  throws {
+    public func save(_ item: T)  throws {
         try  firestoreDataWriter.save(item)
     }
     var errorHandler: (Error) -> Err
-    init(documentReference: DocumentReference, errorHandler: @escaping (Error) -> Err){
+    public init(documentReference: DocumentReference, errorHandler: @escaping (Error) -> Err){
         self.firestoreListener = FirestoreDocumentListener<T>(document: documentReference)
         self.firestoreDataWriter = FirestoreDocumentWriter<T,T>(document: documentReference)
         self.errorHandler = errorHandler
@@ -93,11 +93,11 @@ class GenericFirestoreDocumentService<T: Codable, Err: Error> {
     var firestoreListener: FirestoreDocumentListener<T>
     var firestoreDataWriter: FirestoreDocumentWriter<T,T>
     
-    func delete() throws {
+    public func delete() throws {
        try firestoreDataWriter.delete()
     }
    
-    func subscribe(onUpdate: @escaping (Result<T?, Error>) -> Void) -> UUID {
+    public func subscribe(onUpdate: @escaping (Result<T?, Error>) -> Void) -> UUID {
         let subscriptionId =  firestoreListener.subscribe { [weak self] result in
             switch result{
             case .success(let items):
@@ -112,7 +112,7 @@ class GenericFirestoreDocumentService<T: Codable, Err: Error> {
         return subscriptionId
     }
     
-    func getDocument() async throws -> T?{
+    public func getDocument() async throws -> T?{
         try await self.firestoreListener.getDocument()
     }
 }
