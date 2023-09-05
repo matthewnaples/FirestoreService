@@ -16,6 +16,8 @@ extension CollectionReference: FirebaseCollection{
     }
 }
 extension DocumentReference: FirebaseDocument{
+  
+    
     public func setData<T>(from: T, callback: ((Error?) -> Void)?) throws  where T : Encodable {
         try self.setData(from: from, completion: callback)
     }
@@ -28,12 +30,29 @@ extension DocumentReference: FirebaseDocument{
         let item = try doc.data(as: T.self)
         return item
     }
+    public func getDocument<T>(source: FirestoreSource, completion: @escaping (Result<T?,Error>) -> Void)  where T: Decodable{
+        self.getDocument(source: source) { maybeDoc, maybeErr in
+            if let error = maybeErr{
+                completion(.failure(error))
+                return
+            }
+            do{
+                 let item = try maybeDoc?.data(as: T.self)
+                completion(.success(item))
+                
+            } catch{
+                completion(.failure(error))
+            }
+        }
+    }
 }
 public protocol FirebaseDocument{
     func setData<T>(from: T, callback: ((Error?) -> Void)?) throws  where T : Encodable
     func delete(callback: ((Error?) -> Void)?)
     func addSnapshotListener(_ listener: @escaping (DocumentSnapshot?, Error?) -> Void) -> ListenerRegistration
     func getDocument<T>() async throws -> T? where T: Decodable
+    func getDocument<T>(source: FirestoreSource, completion:  @escaping (Result<T?,Error>) -> Void) where T: Decodable
     var documentID: String {get}
+    
 }
 public typealias FireStoreMapper<DomainModel, FirestoreDocumentModel: Codable & Identifiable> = (DomainModel) -> FirestoreDocumentModel
