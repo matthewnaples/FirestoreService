@@ -30,6 +30,7 @@ extension DocumentReference: FirebaseDocument{
         let item = try doc.data(as: T.self)
         return item
     }
+    
     public func getDocument<T>(source: FirestoreSource, completion: @escaping (Result<T?,Error>) -> Void)  where T: Decodable{
         self.getDocument(source: source) { maybeDoc, maybeErr in
             if let error = maybeErr{

@@ -20,21 +20,21 @@ public class FirestoreDocumentListener<T: Codable>{
         self.document = document
         
     }
-    func getDocument() async throws -> T?{
+    public func getDocument() async throws -> T?{
         try await document.getDocument()
     }
-    func getDocument(source: FirestoreSource,completion: @escaping (Result<T?,Error>) -> Void){
+    public func getDocument(source: FirestoreSource,completion: @escaping (Result<T?,Error>) -> Void){
         self.document.getDocument(source: source) { result in
             completion(result)
         }
     }
-    func subscribe(_ onUpdate: @escaping (Result<T?,DSError>) -> Void) -> UUID {
+    public func subscribe(_ onUpdate: @escaping (Result<T?,DSError>) -> Void) -> UUID {
         let listenerId = UUID()
         self.listenerRegistrations[listenerId] = getListener( handler: onUpdate)
         return listenerId
     }
     
-    func unsubscribe(_ subscriptionId: UUID) {
+    public func unsubscribe(_ subscriptionId: UUID) {
         self.listenerRegistrations.removeValue(forKey: subscriptionId)
     }
     
