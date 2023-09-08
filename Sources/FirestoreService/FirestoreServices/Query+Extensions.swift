@@ -7,7 +7,9 @@
 
 import Foundation
 import FirebaseFirestore
-extension Query {
+
+
+public extension Query {
     func whereField(_ field: String, isDateInToday value: Date) -> Query {
         guard let end = Calendar.current.date(byAdding: .day, value: 1, to: value) else{
             fatalError("could not calculate start date from end date")
@@ -20,7 +22,6 @@ extension Query {
     func whereFieldIsBetween(_ field: String, startDate: Date, endDate: Date) -> Query{
         let startComponents = Calendar.current.dateComponents([.year, .month, .day], from: startDate)
         let endComponents = Calendar.current.dateComponents([.year, .month, .day], from: endDate)
-
         guard
             let start = Calendar.current.date(from: startComponents),
             let end = Calendar.current.date(from: endComponents)
@@ -30,5 +31,15 @@ extension Query {
 //        print("start: \(start)")
 //        print("end: \(end)")
         return self.whereField(field, isGreaterThan: start).whereField(field, isLessThan: end)
+    }
+    func whereFieldIsOnOrAfter(_ field: String, date: Date) -> Query{
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+
+        guard
+            let finalDate = Calendar.current.date(from: components)
+        else {
+            fatalError("Could not find start date or calculate end date.")
+        }
+        return self.whereField(field, isGreaterThanOrEqualTo: finalDate)
     }
 }
