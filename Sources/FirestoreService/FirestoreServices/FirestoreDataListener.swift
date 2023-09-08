@@ -179,7 +179,33 @@ public class FirestoreDataLoader<T: Codable> {
             return try doc.data(as: T.self)
         }
     }
-    
+    public func loadData(source: FirestoreSource, completion: @escaping (Result<[T],Error>) -> Void){
+        query.getDocuments(source: source) { snapshot, error in
+            if let error = error{
+                completion(.failure(error))
+            } else {
+                guard let snapshot = snapshot else{
+                    completion(.success([]))
+                    return
+                }
+                var codingProblems: [CodingProblem] = []
+                var items: [T] = []
+                for doc in snapshot.documents{
+                    do{
+                        let item = try doc.data(as: T.self)
+                        items.append(item)
+                    } catch{
+                        codingProblems.append(CodingProblem(problemDocumentSnapshot: doc, error: error))
+                    }
+                }
+                if Double(codingProblems.count)/Double(snapshot.count) > 0.1{
+                    completion(.failure(DSError.CouldNotDecode("There was a problem decoding data.", codingProblems)))
+                } else{
+                    completion(.success(items))
+                }
+            }
+        }
+    }
 }
 
 
