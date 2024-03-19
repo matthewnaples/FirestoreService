@@ -151,7 +151,8 @@ public class FirestoreDataListener<T: Codable>{
         print("firestoreListener unsubscribed \(subscriptionId)... current subscription count \(listenerRegistrations.values.count)")
     }
     ///loads all data from the query and maps them to throws if documents cannot be retrieved or decoded
-    public func loadData(source: FirestoreSource) async throws -> [T]{
+    public func loadData(source: FirestoreSource, queryBuilder: QueryBuilder) async throws -> [T]{
+        let query = queryBuilder(self.collection)
         let querySnapshot = try await collection.getDocuments(source: source)
         return try querySnapshot.documents.compactMap{doc in
             return try doc.data(as: T.self)
