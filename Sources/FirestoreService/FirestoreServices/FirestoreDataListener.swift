@@ -18,7 +18,7 @@ public class FirestoreDataListener<T: Codable>{
     }
     let decodingProblemThreshold: Double = 0.5
     private let id = Int.random(in: 1...10000)
-    private let query: Query
+    private let collection: CollectionReference
     var listenerRegistrations: [UUID: ListenerRegistration] =  [:]{
         didSet{
             print("firestorelistener \(id) now has \(listenerRegistrations.values.count)")
@@ -27,12 +27,12 @@ public class FirestoreDataListener<T: Codable>{
 //    let errorMapper: ErrorMapper
 //    typealias ErrorMapper = ((Error) -> Err)
 
-    public init(query: Query){
-        self.query = query
+    public init(query: CollectionReference){
+        self.collection = query
     }
     
-    private func getListener(appendedQuery: Query?,handler:  @escaping ((Result<[T],Error>)->Void)) -> ListenerRegistration{
-        let queryToSubscribeTo = appendedQuery ?? query
+    private func getListener(queryBuilder: QueryBuilder,handler:  @escaping ((Result<[T],Error>)->Void)) -> ListenerRegistration{
+        let queryToSubscribeTo = queryBuilder(collection)
         let registration = queryToSubscribeTo.addSnapshotListener { snapshot, anError in
             var result: Result<[T], Error>
 
@@ -77,7 +77,7 @@ public class FirestoreDataListener<T: Codable>{
         return registration
     }
     private func getDocChangesListener(handler:  @escaping ((Result<[(DocumentChangeType, T)],DSError>)->Void)) -> ListenerRegistration{
-        let registration = query.addSnapshotListener { snapshot, anError in
+        let registration = collection.addSnapshotListener { snapshot, anError in
             var result: Result<[(DocumentChangeType, T)], DSError>
             print("doc changes info...")
             print(snapshot?.documentChanges.map(\.type.description))
@@ -130,9 +130,10 @@ public class FirestoreDataListener<T: Codable>{
         return registration
     }
 
-    public func subscribe(_ onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
+    public func subscribe(to queryBuilder: QueryBuilder = {$0},_ onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
         let listenerId = UUID()
-        self.listenerRegistrations[listenerId] = getListener( appendedQuery: nil, handler: onUpdate)
+        
+        self.listenerRegistrations[listenerId] = getListener(queryBuilder: queryBuilder, handler: onUpdate)
         print("firestoreListener added subscriber \(listenerId) \(type(of: T.self)) current subscription count \(listenerRegistrations.values.count)")
         return listenerId
     }
@@ -151,7 +152,7 @@ public class FirestoreDataListener<T: Codable>{
     }
     ///loads all data from the query and maps them to throws if documents cannot be retrieved or decoded
     public func loadData(source: FirestoreSource) async throws -> [T]{
-        let querySnapshot = try await query.getDocuments(source: source)
+        let querySnapshot = try await collection.getDocuments(source: source)
         return try querySnapshot.documents.compactMap{doc in
             return try doc.data(as: T.self)
         }
@@ -159,9 +160,10 @@ public class FirestoreDataListener<T: Codable>{
     
     public func subscribeOnDatesBetween(startDate: Date, and endDate: Date,dateFieldPath: String,onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
         let listenerId = UUID()
-        let appendedQuery = self.query
-            .whereFieldIsBetween(dateFieldPath, startDate: startDate, endDate: endDate)
-        self.listenerRegistrations[listenerId] = self.getListener(appendedQuery: appendedQuery, handler: onUpdate)
+        let queryBuilder: QueryBuilder = {
+            $0.whereFieldIsBetween(dateFieldPath, startDate: startDate, endDate: endDate)
+        }
+        self.listenerRegistrations[listenerId] = self.getListener(queryBuilder: queryBuilder, handler: onUpdate)
         print("firestoreListener added subscriber \(listenerId) \(type(of: T.self)) current subscription count \(listenerRegistrations.values.count)")
         return listenerId
     }

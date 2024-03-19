@@ -30,7 +30,7 @@ public class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writ
     }
     var errorHandler: (Error) -> Err
 
-    public init(query: Query, writer: Writer, errorHandler: @escaping (Error) -> Err){
+    public init(query: CollectionReference, writer: Writer, errorHandler: @escaping (Error) -> Err){
         self.firestoreListener = FirestoreDataListener(query: query)
         self.firestoreDataWriter = writer
         self.errorHandler = errorHandler
@@ -42,8 +42,8 @@ public class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writ
        try firestoreDataWriter.delete( item)
     }
     
-    public func subscribe(onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {
-        let subscriptionId =  firestoreListener.subscribe { [unowned self] result in
+    public func subscribe(to: QueryBuilder,onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {
+        let subscriptionId =  firestoreListener.subscribe(to: to) { [unowned self] result in
             switch result{
             case .success(let items):
                 print("fetched \(items.count) items of type \(type(of: T.self))")

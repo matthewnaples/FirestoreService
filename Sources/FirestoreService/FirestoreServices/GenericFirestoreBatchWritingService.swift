@@ -26,7 +26,7 @@ public class GenericFirestoreBatchWritingService<T: Identifiable & Codable,U: Id
     }
     var errorHandler: (Error) -> Err
 
-    public init(query: Query, collectionToWriteTo: CollectionReference, errorHandler: @escaping (Error) -> Err){
+    public init(query: CollectionReference, collectionToWriteTo: CollectionReference, errorHandler: @escaping (Error) -> Err){
         self.firestoreListener = FirestoreDataListener(query: query)
         self.firestoreDataWriter = FirestoreDataWriter<T,T>(collection: collectionToWriteTo)
         self.errorHandler = errorHandler
@@ -39,6 +39,7 @@ public class GenericFirestoreBatchWritingService<T: Identifiable & Codable,U: Id
     }
     
     public func subscribe(onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {
+        
         let subscriptionId =  firestoreListener.subscribe { [unowned self] result in
             switch result{
             case .success(let items):
