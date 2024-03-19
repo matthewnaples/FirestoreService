@@ -31,7 +31,7 @@ public class FirestoreDataListener<T: Codable>{
         self.collection = query
     }
     
-    private func getListener(queryBuilder: QueryBuilder,handler:  @escaping ((Result<[T],Error>)->Void)) -> ListenerRegistration{
+    private func getListener(queryBuilder:@escaping  QueryBuilder,handler:  @escaping ((Result<[T],Error>)->Void)) -> ListenerRegistration{
         let queryToSubscribeTo = queryBuilder(collection)
         let registration = queryToSubscribeTo.addSnapshotListener { snapshot, anError in
             var result: Result<[T], Error>
@@ -76,8 +76,9 @@ public class FirestoreDataListener<T: Codable>{
         
         return registration
     }
-    private func getDocChangesListener(handler:  @escaping ((Result<[(DocumentChangeType, T)],DSError>)->Void)) -> ListenerRegistration{
-        let registration = collection.addSnapshotListener { snapshot, anError in
+    private func getDocChangesListener(queryBuilder: QueryBuilder,handler:  @escaping ((Result<[(DocumentChangeType, T)],DSError>)->Void)) -> ListenerRegistration{
+        let query = queryBuilder(self.collection)
+        let registration = query.addSnapshotListener { snapshot, anError in
             var result: Result<[(DocumentChangeType, T)], DSError>
             print("doc changes info...")
             print(snapshot?.documentChanges.map(\.type.description))
@@ -130,16 +131,16 @@ public class FirestoreDataListener<T: Codable>{
         return registration
     }
 
-    public func subscribe(to queryBuilder: QueryBuilder = {$0},_ onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
+    public func subscribe(to queryBuilder:@escaping QueryBuilder = {$0},_ onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
         let listenerId = UUID()
         
         self.listenerRegistrations[listenerId] = getListener(queryBuilder: queryBuilder, handler: onUpdate)
         print("firestoreListener added subscriber \(listenerId) \(type(of: T.self)) current subscription count \(listenerRegistrations.values.count)")
         return listenerId
     }
-    public func subscribeToChanges(_ onUpdate: @escaping (Result<[(DocumentChangeType, T)],DSError>) -> Void) -> UUID {
+    public func subscribeToChanges(on queryBuilder: QueryBuilder, _ onUpdate: @escaping (Result<[(DocumentChangeType, T)],DSError>) -> Void) -> UUID {
         let listenerId = UUID()
-        self.listenerRegistrations[listenerId] = getDocChangesListener( handler: onUpdate)
+        self.listenerRegistrations[listenerId] = getDocChangesListener(queryBuilder: queryBuilder, handler: onUpdate)
         return listenerId
     }
   

@@ -54,8 +54,8 @@ public class GenericFirestoreBatchWritingService<T: Identifiable & Codable,U: Id
         }
         return subscriptionId
     }
-    public func subscribeToChanges(onUpdate: @escaping (Result<[(DocumentChangeType, T)], Error>) -> Void) -> UUID {
-        let subscriptionId =  firestoreListener.subscribeToChanges { [weak self] result in
+    public func subscribeToChanges(on queryBuilder: @escaping QueryBuilder, onUpdate: @escaping (Result<[(DocumentChangeType, T)], Error>) -> Void) -> UUID {
+        let subscriptionId =  firestoreListener.subscribeToChanges(on: queryBuilder) { [weak self] result in
             switch result{
             case .success(let items):
                 

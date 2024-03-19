@@ -42,7 +42,7 @@ public class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writ
        try firestoreDataWriter.delete( item)
     }
     
-    public func subscribe(to: QueryBuilder,onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {
+    public func subscribe(to: @escaping QueryBuilder,onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {
         let subscriptionId =  firestoreListener.subscribe(to: to) { [unowned self] result in
             switch result{
             case .success(let items):
@@ -57,8 +57,8 @@ public class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writ
         }
         return subscriptionId
     }
-    public func subscribeToChanges(onUpdate: @escaping (Result<[(DocumentChangeType, T)], Error>) -> Void) -> UUID {
-        let subscriptionId =  firestoreListener.subscribeToChanges { [weak self] result in
+    public func subscribeToChanges(on queryBuilder: QueryBuilder,onUpdate: @escaping (Result<[(DocumentChangeType, T)], Error>) -> Void) -> UUID {
+        let subscriptionId =  firestoreListener.subscribeToChanges(on: queryBuilder){ [weak self] result in
             switch result{
             case .success(let items):
                 
