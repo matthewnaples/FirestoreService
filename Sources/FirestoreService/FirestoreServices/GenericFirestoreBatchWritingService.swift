@@ -26,8 +26,8 @@ public class GenericFirestoreBatchWritingService<T: Identifiable & Codable,U: Id
     }
     var errorHandler: (Error) -> Err
 
-    public init(query: CollectionReference, collectionToWriteTo: CollectionReference, errorHandler: @escaping (Error) -> Err){
-        self.firestoreListener = FirestoreDataListener(query: query)
+    public init(collection: CollectionReference, collectionToWriteTo: CollectionReference, errorHandler: @escaping (Error) -> Err){
+        self.firestoreListener = FirestoreDataListener(collection: collection)
         self.firestoreDataWriter = FirestoreDataWriter<T,T>(collection: collectionToWriteTo)
         self.errorHandler = errorHandler
     }

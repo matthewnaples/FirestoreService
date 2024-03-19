@@ -30,8 +30,8 @@ public class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writ
     }
     var errorHandler: (Error) -> Err
 
-    public init(query: CollectionReference, writer: Writer, errorHandler: @escaping (Error) -> Err){
-        self.firestoreListener = FirestoreDataListener(query: query)
+    public init(collection: CollectionReference, writer: Writer, errorHandler: @escaping (Error) -> Err){
+        self.firestoreListener = FirestoreDataListener(collection: collection)
         self.firestoreDataWriter = writer
         self.errorHandler = errorHandler
     }

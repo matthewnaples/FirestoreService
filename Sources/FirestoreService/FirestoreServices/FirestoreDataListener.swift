@@ -27,8 +27,8 @@ public class FirestoreDataListener<T: Codable>{
 //    let errorMapper: ErrorMapper
 //    typealias ErrorMapper = ((Error) -> Err)
 
-    public init(query: CollectionReference){
-        self.collection = query
+    public init(collection: CollectionReference){
+        self.collection = collection
     }
     
     private func getListener(queryBuilder:@escaping  QueryBuilder,handler:  @escaping ((Result<[T],Error>)->Void)) -> ListenerRegistration{
