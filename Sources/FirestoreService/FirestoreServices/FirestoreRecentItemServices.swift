@@ -8,7 +8,7 @@
 import Foundation
 import FirebaseFirestore
 public class FirebaseRecentItemService<T: Codable>{
-    let dataLoader: FirestoreDataLoader<T>
+    public let dataLoader: FirestoreDataLoader<T>
     var collection: CollectionReference
     var dateFieldName: String
     public init(collection: CollectionReference, dateFieldName: String){
