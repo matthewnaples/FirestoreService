@@ -10,7 +10,7 @@ import FirebaseFirestore
 public class FirebaseRecentItemService<T: Codable>{
     public let dataLoader: FirestoreDataLoader<T>
     var collection: CollectionReference
-    var dateFieldName: String
+    public let dateFieldName: String
     public init(collection: CollectionReference, dateFieldName: String){
         self.dataLoader = FirestoreDataLoader(collection: collection)
         self.dateFieldName = dateFieldName
