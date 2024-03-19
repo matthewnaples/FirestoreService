@@ -12,7 +12,7 @@ public class FirebaseRecentItemService<T: Codable>{
     var collection: CollectionReference
     var dateFieldName: String
     public init(collection: CollectionReference, dateFieldName: String){
-        self.dataLoader = FirestoreDataLoader(query: collection)
+        self.dataLoader = FirestoreDataLoader(collection: collection)
         self.dateFieldName = dateFieldName
         self.collection = collection
     }
@@ -27,7 +27,6 @@ public class FirebaseRecentItemService<T: Codable>{
         })
     }
     public func getItems(onDay: Date, completion: @escaping (Result<[T],Error>) -> Void){
-        dataLoader.query = collection.
         
         dataLoader.loadData(source: .default, queryBuilder: {
             $0.whereField(dateFieldName, isDateInToday: onDay)
