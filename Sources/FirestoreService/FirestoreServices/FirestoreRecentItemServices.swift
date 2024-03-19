@@ -17,17 +17,20 @@ public class FirebaseRecentItemService<T: Codable>{
         self.collection = collection
     }
     public func getItems(onOrAfter date: Date) async throws -> [T]{
-        dataLoader.query = collection.whereFieldIsOnOrAfter(dateFieldName, date: date)
-        return try await dataLoader.loadData(source: .default)
+        return try await dataLoader.loadData(source: .default, queryBuilder: { collection in
+            collection.whereFieldIsOnOrAfter(dateFieldName, date: date)
+        })
     }
     public func getItems(onDay: Date) async throws -> [T]{
-        
-        dataLoader.query = collection.whereField(dateFieldName, isDateInToday: onDay)
-        return try await dataLoader.loadData(source: .default)
+        return try await dataLoader.loadData(source: .default, queryBuilder: {collection in
+            collection.whereField(dateFieldName, isDateInToday: onDay)
+        })
     }
     public func getItems(onDay: Date, completion: @escaping (Result<[T],Error>) -> Void){
-        dataLoader.query = collection.whereField(dateFieldName, isDateInToday: onDay)
+        dataLoader.query = collection.
         
-        dataLoader.loadData(source: .default, completion: completion)
+        dataLoader.loadData(source: .default, queryBuilder: {
+            $0.whereField(dateFieldName, isDateInToday: onDay)
+        }, completion: completion)
     }
 }

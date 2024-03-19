@@ -9,6 +9,8 @@ import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
+
+public typealias QueryBuilder = (CollectionReference) -> Query
 public class FirestoreDataListener<T: Codable>{
     deinit{
         let registrations = listenerRegistrations.values
@@ -16,7 +18,7 @@ public class FirestoreDataListener<T: Codable>{
     }
     let decodingProblemThreshold: Double = 0.5
     private let id = Int.random(in: 1...10000)
-    public var query: Query
+    private let query: Query
     var listenerRegistrations: [UUID: ListenerRegistration] =  [:]{
         didSet{
             print("firestorelistener \(id) now has \(listenerRegistrations.values.count)")
@@ -167,20 +169,23 @@ public class FirestoreDataListener<T: Codable>{
 }
 public class FirestoreDataLoader<T: Codable> {
     
-    public var query: Query
-    public init(query: Query){
-        self.query = query
+    private let collection: CollectionReference
+    public init(collection: CollectionReference){
+        self.collection = collection
     }
     
     ///loads all data from the query and maps them to throws if documents cannot be retrieved or decoded
-    public func loadData(source: FirestoreSource) async throws -> [T]{
-        let querySnapshot = try await query.getDocuments(source: source)
+    public func loadData(source: FirestoreSource, queryBuilder: QueryBuilder) async throws -> [T]{
+        let q = queryBuilder(self.collection)
+        
+        let querySnapshot = try await q.getDocuments(source: source)
         return try querySnapshot.documents.compactMap{doc in
             return try doc.data(as: T.self)
         }
     }
-    public func loadData(source: FirestoreSource, completion: @escaping (Result<[T],Error>) -> Void){
-        query.getDocuments(source: source) { snapshot, error in
+    public func loadData(source: FirestoreSource,queryBuilder: QueryBuilder ,completion: @escaping (Result<[T],Error>) -> Void){
+        let q = queryBuilder(self.collection)
+        q.getDocuments(source: source) { snapshot, error in
             if let error = error{
                 completion(.failure(error))
             } else {
