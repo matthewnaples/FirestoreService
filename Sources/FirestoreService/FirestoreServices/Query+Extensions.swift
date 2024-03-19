@@ -19,6 +19,8 @@ public extension Query {
 //        print("end: \(end)")
         return self.whereFieldIsBetween(field, startDate: value, endDate: end)
     }
+    
+    /// will include all entries that are ≥ start and ≤ end (inclusive both ends)
     func whereFieldIsBetween(_ field: String, startDate: Date, endDate: Date) -> Query{
         let startComponents = Calendar.current.dateComponents([.year, .month, .day], from: startDate)
         let endComponents = Calendar.current.dateComponents([.year, .month, .day], from: endDate)
@@ -30,7 +32,8 @@ public extension Query {
         }
 //        print("start: \(start)")
 //        print("end: \(end)")
-        return self.whereField(field, isGreaterThan: start).whereField(field, isLessThan: end)
+        
+        return self.whereField(field, isGreaterThanOrEqualTo: start).whereField(field, isLessThanOrEqualTo: end)
     }
     func whereFieldIsOnOrAfter(_ field: String, date: Date) -> Query{
         let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
