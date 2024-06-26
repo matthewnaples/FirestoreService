@@ -14,7 +14,13 @@ import Firebase
 //    associatedtype Err: Error
 //    static func createGeneralError() -> Err
 //}
-open class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writer: FirestoreWriter> where T.ID == String, Writer.Item == T{
+public protocol GFS{
+    associatedtype T: Identifiable & Codable
+    associatedtype Err: Error
+    associatedtype Writer: FirestoreWriter
+}
+
+public class GenericFirestoreServiceDefaultImplementation<T: Identifiable & Codable, Err: Error, Writer: FirestoreWriter>: GFS where T.ID == String, Writer.Item == T{
     public func unsubscribe(_ subscriptionId: UUID) {
         firestoreListener.unsubscribe(subscriptionId)
     }
@@ -76,7 +82,7 @@ open class GenericFirestoreService<T: Identifiable & Codable, Err: Error, Writer
 }
 
 
-open class GenericFirestoreDocumentService<T: Codable, Err: Error> {
+public class GenericFirestoreDocumentService<T: Codable, Err: Error> {
     public func unsubscribe(_ subscriptionId: UUID) {
         firestoreListener.unsubscribe(subscriptionId)
     }
