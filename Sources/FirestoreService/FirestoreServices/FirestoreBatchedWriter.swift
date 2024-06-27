@@ -9,15 +9,25 @@ import Foundation
 import FirebaseFirestore
 // This will write two objects to firestore in a batch. The second object is to be placed in a subcollection of the first.
 public class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & Identifiable, U: Codable & Identifiable>: FirestoreWriter where  Item.ID == String,T.ID == String, U.ID == String{
+    public func save(_ item: Item, errorCallback: (((any Error)?) -> Void)?) throws {
+        let (documentModel1, documentModel2) = itemMapper(item)
+        try batchSave(item1: documentModel1, item2: documentModel2, errorCallback: errorCallback)
+    }
+    
+    public func delete(_ item: Item, errorCallback: (((any Error)?) -> Void)?) throws {
+        let (documentModel1, documentModel2) = itemMapper(item)
+        try batchDelete(item1: documentModel1, item2: documentModel2, errorCallback: errorCallback)
+    }
+    
     public func save(_ item: Item) throws {
         let (documentModel1, documentModel2) = itemMapper(item)
-        try batchSave(item1: documentModel1, item2: documentModel2)
+        try batchSave(item1: documentModel1, item2: documentModel2, errorCallback: nil)
     }
     
     public func delete(_ item: Item) throws {
         let (documentModel1, documentModel2) = itemMapper(item)
         
-        try batchDelete(item1: documentModel1, item2: documentModel2)
+        try batchDelete(item1: documentModel1, item2: documentModel2, errorCallback: nil)
     }
     
 
@@ -34,7 +44,7 @@ public class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & I
 
     
     ///saves item1 to collection2 and item2 to collection2
-    public func batchSave(item1: T, item2: [U]) throws{
+    public func batchSave(item1: T, item2: [U], errorCallback: ((Error?)->Void)?) throws{
         // Get new write batch
         let batch = db.batch()
         
@@ -50,8 +60,8 @@ public class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & I
 
         // Commit the batch
         batch.commit(){err in
-            print("\(err?.localizedDescription)")
-            print("committed batch")
+            errorCallback?(err)
+
         }
 
     }
@@ -79,7 +89,7 @@ public class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & I
 
     }
     /// deletes item1 and item2 in a batch.
-    public func batchDelete(item1: T, item2: [U]) throws{
+    public func batchDelete(item1: T, item2: [U], errorCallback: ((Error?) -> Void)?) throws{
         // Get new write batch
         let batch = db.batch()
         // Set the value of item1 in collection 1

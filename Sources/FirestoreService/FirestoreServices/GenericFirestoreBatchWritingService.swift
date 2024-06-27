@@ -22,7 +22,7 @@ public class GenericFirestoreBatchWritingService<T: Identifiable & Codable,U: Id
     }
     
     public func save(_ item: T)  throws {
-        try  firestoreDataWriter.save(item)
+        try  firestoreDataWriter.save(item, errorCallback: nil)
     }
     var errorHandler: (Error) -> Err
 
@@ -35,7 +35,7 @@ public class GenericFirestoreBatchWritingService<T: Identifiable & Codable,U: Id
     public var firestoreDataWriter: FirestoreDataWriter<T,T>
     
     public func delete(_ item: T) throws {
-       try firestoreDataWriter.delete( item)
+        try firestoreDataWriter.delete( item, errorCallback: nil)
     }
     
     public func subscribe(onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {

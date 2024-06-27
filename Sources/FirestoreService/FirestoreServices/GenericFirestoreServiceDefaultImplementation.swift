@@ -21,12 +21,8 @@ public protocol GenericFirestoreService{
     func unsubscribe(_ subscriptionId: UUID)
     
     func save(_ items: [T])  throws
-    
-    
-    func save(_ item: T)  throws
-
-    
-    func delete(_ item: T) throws
+    func save(_ item: T, errorCallback: ((Error?)->Void)?)  throws
+    func delete(_ item: T, errorCallback: ((Error?)->Void)?) throws
     
     func subscribe(to: @escaping QueryBuilder,onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID
     func subscribeToChanges(on queryBuilder: QueryBuilder,onUpdate: @escaping (Result<[(DocumentChangeType, T)], Error>) -> Void) -> UUID
@@ -40,13 +36,14 @@ public class GenericFirestoreServiceDefaultImplementation<T: Identifiable & Coda
     
     public func save(_ items: [T])  throws {
         for item in items{
-            try  self.save(item)
+            try  self.save(item, errorCallback: nil)
         }
     }
     
-    public func save(_ item: T)  throws {
-        try  firestoreDataWriter.save(item)
+    public func save(_ item: T,errorCallback: ((Error?)->Void)?)  throws {
+        try  firestoreDataWriter.save(item,errorCallback: errorCallback)
     }
+ 
     var errorHandler: (Error) -> Err
 
     public init(collection: CollectionReference, writer: Writer, errorHandler: @escaping (Error) -> Err){
@@ -57,8 +54,8 @@ public class GenericFirestoreServiceDefaultImplementation<T: Identifiable & Coda
     public var firestoreListener: FirestoreDataListener<T>
     public var firestoreDataWriter: Writer
     
-    public func delete(_ item: T) throws {
-       try firestoreDataWriter.delete( item)
+    public func delete(_ item: T, errorCallback: ((Error?)->Void)?) throws {
+        try firestoreDataWriter.delete(item, errorCallback: errorCallback)
     }
     
     public func subscribe(to: @escaping QueryBuilder,onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {

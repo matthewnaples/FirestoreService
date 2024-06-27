@@ -8,6 +8,6 @@
 import Foundation
 public protocol FirestoreWriter{
     associatedtype Item
-    func save(_ item: Item)  throws
-    func delete(_ item: Item) throws
+    func save(_ item: Item, errorCallback: ((Error?) -> Void)?)  throws
+    func delete(_ item: Item, errorCallback: ((Error?) -> Void)?) throws
 }

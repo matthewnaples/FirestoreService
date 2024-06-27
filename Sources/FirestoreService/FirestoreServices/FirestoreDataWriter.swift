@@ -26,36 +26,22 @@ public class FirestoreDataWriter<T, FirestoreDocumentModel: Codable & Identifiab
         self.collection = collection
         self.mapper = {return $0}
     }
-    public func save(_ item: T) throws{
+    public func save(_ item: T, errorCallback: ((Error?) -> Void)?) throws{
         let firItem = mapper(item)
 
         do{
             try collection.document(documentPath: firItem.id).setData(from: firItem){ error in
-            if let error = error{
-                
-                print("---- error ----")
-                print(type(of: error))
-                print(error.localizedDescription)
-                print("---- end error ----")
-            }
-            print("callback from update doc")
+            errorCallback?(error)
         }
         } catch{
             throw DSError.GeneralError("could not save item : \(firItem.id)", error)
         }
         print("\(firItem.id) has been updated with callback")
     }
-    public func delete(_ item: T) throws{
+    public func delete(_ item: T, errorCallback: ((Error?) -> Void)?) throws{
         let firItem = mapper(item)
         collection.document(documentPath: firItem.id).delete{ error in
-            if let error = error{
-                
-                print("---- error ----")
-                print(type(of: error))
-                print(error.localizedDescription)
-                print("---- end error ----")
-            }
-            print("callback from update doc")
+            errorCallback?(error)
         }
         print("\( firItem.id) has been updated with callback")
     }
