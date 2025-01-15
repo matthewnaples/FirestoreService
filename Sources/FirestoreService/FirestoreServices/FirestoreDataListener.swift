@@ -169,7 +169,20 @@ public class FirestoreDataListener<T: Codable>{
         print("firestoreListener added subscriber \(listenerId) \(type(of: T.self)) current subscription count \(listenerRegistrations.values.count)")
         return listenerId
     }
+    
+    /// will get all documents that are before and including the given date
+    public func subscribeOnDatesUpToAndIncluding(date: Date, dateFieldPath: String,onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
+        let listenerId = UUID()
+        let queryBuilder: QueryBuilder = {
+            $0.whereFieldIsOnOrBefore(dateFieldPath, date: date)
+        }
+        self.listenerRegistrations[listenerId] = self.getListener(queryBuilder: queryBuilder, handler: onUpdate)
+        print("firestoreListener added subscriber \(listenerId) \(type(of: T.self)) current subscription count \(listenerRegistrations.values.count)")
+        return listenerId
+    }
     typealias Item = T
+    
+    
 }
 public class FirestoreDataLoader<T: Codable> {
     

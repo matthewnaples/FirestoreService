@@ -47,4 +47,14 @@ public extension Query {
         }
         return self.whereField(field, isGreaterThanOrEqualTo: finalDate)
     }
+    func whereFieldIsOnOrBefore(_ field: String, date: Date) -> Query{
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+
+        guard
+            let finalDate = Calendar.current.date(from: components)
+        else {
+            fatalError("Could not find date or calculate end date.")
+        }
+        return self.whereField(field, isLessThanOrEqualTo: finalDate)
+    }
 }
