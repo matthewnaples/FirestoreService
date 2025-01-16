@@ -16,7 +16,6 @@ extension CollectionReference: FirebaseCollection{
     }
 }
 extension DocumentReference: FirebaseDocument{
-  
     
     public func setData<T>(from: T, callback: ((Error?) -> Void)?) throws  where T : Encodable {
         try self.setData(from: from, completion: callback)

@@ -7,7 +7,6 @@
 
 import Foundation
 import FirebaseFirestore
-import FirebaseFirestoreSwift
 
 
 public typealias QueryBuilder = (CollectionReference) -> Query

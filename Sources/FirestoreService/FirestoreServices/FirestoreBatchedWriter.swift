@@ -101,7 +101,7 @@ public class FirestoreBatchedWriter<Item: Codable & Identifiable, T: Codable & I
             let itemDocRef = collection2.document(item.id)
             batch.deleteDocument(itemDocRef)
         }
-        batch.commit()
+        batch.commit(completion: errorCallback)
     }
     /// deletes item1 and item2 in a batch asynchronously
     public func batchDeleteAsync(item1: T, item2: [U]) async throws{

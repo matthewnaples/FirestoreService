@@ -9,6 +9,7 @@ import Foundation
 import FirebaseFirestore
 
 
+
 public extension Query {
     func whereField(_ field: String, isDateInToday value: Date) -> Query {
         guard let end = Calendar.current.date(byAdding: .day, value: 1, to: value) else{
