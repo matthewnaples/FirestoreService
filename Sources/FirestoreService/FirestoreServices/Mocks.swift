@@ -9,23 +9,6 @@ import Foundation
 import Combine
 
 
-protocol CollectionKnowledgable{
-   static var collection: FirestoreCollection {get}
-}
-//in service module
-protocol MockService{
-    func subscribe(onUpdate: @escaping (Result<[MockModel], Error>) -> Void) -> UUID
-    func unsubscribe(_ token: UUID)
-}
-
-//in application module
-extension FirestoreSubscriptionListener: MockService{
-}
-extension FirestoreSubscriptionListener{
-   func subscribe<Item>(onUpdate: @escaping (Result<[Item], any Error>) -> Void) -> UUID where Item : Codable & CollectionKnowledgable {
-       self.subscribe(query: Item.collection, onUpdate: onUpdate)
-   }
-}
 
 
 // MARK: - Mock Collection & Query
