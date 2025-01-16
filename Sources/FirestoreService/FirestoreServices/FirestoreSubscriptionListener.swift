@@ -27,7 +27,7 @@ extension FirestoreSubscriptionListener{
    }
 }
 
-class FirestoreSubscriptionListener {
+public class FirestoreSubscriptionListener {
     
     private var cancellables: [UUID: AnyCancellable] = [:]
     private let lock = NSLock()
