@@ -8,17 +8,22 @@
 import Foundation
 import FirebaseFirestore
 
-
-
 public extension Query {
+    /// Return all entries on the same calendar day as `value`
     func whereField(_ field: String, isDateInToday value: Date) -> Query {
-        guard let end = Calendar.current.date(byAdding: .day, value: 1, to: value) else{
-            fatalError("could not calculate start date from end date")
+        let calendar = Calendar.current
+        
+        // start = start of day for `value`
+        let start = calendar.startOfDay(for: value)
+        
+        // end = midnight at the *next* day
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else {
+            fatalError("Could not calculate next day from start")
         }
         
-//        print("start: \(start)")
-//        print("end: \(end)")
-        return self.whereFieldIsBetween(field, startDate: value, endDate: end)
+        return self
+            .whereField(field, isGreaterThanOrEqualTo: start)
+            .whereField(field, isLessThan: end)
     }
     
     /// will include all entries that are ≥ start and ≤ end (inclusive both ends)
