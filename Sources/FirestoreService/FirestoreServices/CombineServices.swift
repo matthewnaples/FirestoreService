@@ -163,9 +163,9 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
         cancellables[subscriptionID] = cancellable
         return subscriptionID
     }
-    public func subscribeToCollectionAndDocument<
-        T2: Codable>(
+    public func subscribeToCollectionAndDocument<T2: Decodable>(
         documentReference: FirestoreDocumentReference,
+        documentType: T2.Type,
         queryBuilder1: @escaping QueryBuilder2 = { $0 },
         onUpdate: @escaping (Result<([T], T2), Error>) -> Void
     ) -> UUID {
