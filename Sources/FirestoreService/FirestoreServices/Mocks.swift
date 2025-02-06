@@ -81,8 +81,8 @@ class MockDocumentSnapshot: FirestoreDocumentSnapshot {
        mockData = data
    }
 
-   func data() throws -> [String : Any] {
-       let json = try JSONSerialization.jsonObject(with: mockData, options: []) as! [String : Any]
+   func data() -> [String : Any]? {
+       let json = try? JSONSerialization.jsonObject(with: mockData, options: []) as? [String : Any]
        return json
    }
 }

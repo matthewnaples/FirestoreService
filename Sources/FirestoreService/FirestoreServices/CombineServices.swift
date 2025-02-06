@@ -452,12 +452,12 @@ extension QuerySnapshot: FirestoreQuerySnapshot{
     }
 }
 
-extension QueryDocumentSnapshot: FirestoreDocumentSnapshot{
-    public func data<T>(as type: T.Type) throws -> T where T : Decodable {
-        return try self.data(as: type, with: .none, decoder: .init())
-    }
-    
-}
+//extension QueryDocumentSnapshot: FirestoreDocumentSnapshot{
+//    public func data<T>(as type: T.Type) throws -> T where T : Decodable {
+//        return try self.data(as: type, with: .none, decoder: .init())
+//    }
+//    
+//}
 
 
 extension Query: FirestoreQuery {
@@ -494,8 +494,18 @@ public protocol FirestoreQuerySnapshot {
 /// A protocol that represents an individual document snapshot
 public protocol FirestoreDocumentSnapshot {
     /// Returns the raw data for decoding
-    func data() throws -> [String: Any]
+    func data()  -> [String: Any]?
     func data<T: Decodable>(as type: T.Type) throws -> T
+}
+extension DocumentSnapshot: FirestoreDocumentSnapshot{
+
+    
+    public func data<T>(as type: T.Type) throws -> T where T : Decodable {
+        return try self.data(as: type, with: .none, decoder: .init())
+    }
+    
+    
+    
 }
 
 extension CollectionReference: FirestoreCollection {
@@ -504,10 +514,10 @@ extension CollectionReference: FirestoreCollection {
 }
 extension DocumentReference: FirestoreDocumentReference{
     public func snapshotPublisher() -> AnyPublisher<FirestoreDocumentSnapshot, Error> {
-        return self.snapshotPublisher()
+        return self.snapshotPublisher(includeMetadataChanges: false)
+            .map{ $0 as FirestoreDocumentSnapshot }
+            .eraseToAnyPublisher()
     }
-    
-    
 }
 
 private struct FirestoreQueryImpl: FirestoreQuery {
@@ -540,7 +550,7 @@ private struct FirestoreDocumentSnapshotImpl: FirestoreDocumentSnapshot {
     
     let document: QueryDocumentSnapshot
 
-    func data() throws -> [String: Any] {
+    func data() -> [String: Any]? {
         // For a typical Firestore doc, `data()` is guaranteed.
         return document.data()
     }
