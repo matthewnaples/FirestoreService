@@ -171,11 +171,12 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
     ) -> UUID {
         
         let subscriptionID = UUID()
-        
+        print("creating subscription id: \(subscriptionID)")
         // Build the two queries
         let publisher1 = queryBuilder1(collection).snapshotPublisher()
         let publisher2 = documentReference.snapshotPublisher()
-        
+        print("created publishers for doc and collection")
+
         // Combine them via combineLatest
         let combinedPublisher = publisher1
             .combineLatest(publisher2)
@@ -186,11 +187,13 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
         
         let cancellable = combinedPublisher
             .sink(receiveCompletion: { completion in
+                print("completion received: \(completion)")
                 if case let .failure(error) = completion {
                     onUpdate(.failure(error))
                 }
             }, receiveValue: { (snapshot1, snapshot2) in
-                
+                print("value received: \((snapshot1,snapshot2))")
+
                 // Decode first snapshot into array of T
                 let documents1 = snapshot1.allDocuments
                 var objects1 = [T]()
@@ -212,6 +215,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                 do {
                     obj2 = try snapshot2.data(as: T2.self)
                 } catch {
+                    print("updating failure for document: \(error)")
                     onUpdate(.failure(error))
                     return
                 }
@@ -227,11 +231,14 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                         "First collection had a decoding failure ratio of \(ratio1), or \(decodingProblems1.count) total.",
                         decodingProblems1
                     )
+                    print("updating failure for collection: \(error)")
+
                     onUpdate(.failure(error))
                     return
                 }
                 
                 // Otherwise, success with the two arrays
+                print("updating success with collection and document: \((objects1,obj2))")
                 onUpdate(.success((objects1, obj2)))
             })
         
