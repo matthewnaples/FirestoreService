@@ -163,7 +163,81 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
         cancellables[subscriptionID] = cancellable
         return subscriptionID
     }
-
+    public func subscribeToCollectionAndDocument<
+        T2: Codable>(
+        documentReference: FirestoreDocumentReference,
+        queryBuilder1: @escaping QueryBuilder2 = { $0 },
+        onUpdate: @escaping (Result<([T], T2), Error>) -> Void
+    ) -> UUID {
+        
+        let subscriptionID = UUID()
+        
+        // Build the two queries
+        let publisher1 = queryBuilder1(collection).snapshotPublisher()
+        let publisher2 = documentReference.snapshotPublisher()
+        
+        // Combine them via combineLatest
+        let combinedPublisher = publisher1
+            .combineLatest(publisher2)
+            .eraseToAnyPublisher()
+        
+        lock.lock()
+        defer { lock.unlock() }
+        
+        let cancellable = combinedPublisher
+            .sink(receiveCompletion: { completion in
+                if case let .failure(error) = completion {
+                    onUpdate(.failure(error))
+                }
+            }, receiveValue: { (snapshot1, snapshot2) in
+                
+                // Decode first snapshot into array of T
+                let documents1 = snapshot1.allDocuments
+                var objects1 = [T]()
+                var decodingProblems1 = [CodingProblem2]()
+                
+                for doc in documents1 {
+                    do {
+                        let obj = try doc.data(as: T.self)
+                        objects1.append(obj)
+                    } catch {
+                        decodingProblems1.append(
+                            CodingProblem2(problemQuerySnapshot: doc, error: error)
+                        )
+                    }
+                }
+                
+                var obj2: T2
+                // Decode second snapshot document
+                do {
+                    obj2 = try snapshot2.data(as: T2.self)
+                } catch {
+                    onUpdate(.failure(error))
+                    return
+                }
+            
+                // Check decoding thresholds
+                let ratio1 = documents1.count == 0
+                    ? 0
+                    : Double(decodingProblems1.count)/Double(documents1.count)
+   
+                // If either ratio is above the threshold, fail
+                if ratio1 >= self.decodingProblemThreshold {
+                    let error = DSError2.CouldNotDecode(
+                        "First collection had a decoding failure ratio of \(ratio1), or \(decodingProblems1.count) total.",
+                        decodingProblems1
+                    )
+                    onUpdate(.failure(error))
+                    return
+                }
+                
+                // Otherwise, success with the two arrays
+                onUpdate(.success((objects1, obj2)))
+            })
+        
+        cancellables[subscriptionID] = cancellable
+        return subscriptionID
+    }
     public func subscribeToThreeCollections<
         T2: Codable,
         T3: Codable,
@@ -396,7 +470,10 @@ public protocol FirestoreCollection: FirestoreQuery {
     // Add more query-building functions as needed...
 //    func getDocument(_ documentPath: String) -> FirestoreDocumentSnapshot
 }
+public protocol FirestoreDocumentReference{
+    func snapshotPublisher() -> AnyPublisher<FirestoreDocumentSnapshot, Error>
 
+}
 /// A protocol that represents a Firestore-like query
 public protocol FirestoreQuery {
     func snapshotPublisher() -> AnyPublisher<FirestoreQuerySnapshot, Error>
@@ -417,6 +494,13 @@ public protocol FirestoreDocumentSnapshot {
 extension CollectionReference: FirestoreCollection {
    
  
+}
+extension DocumentReference: FirestoreDocumentReference{
+    public func snapshotPublisher() -> AnyPublisher<FirestoreDocumentSnapshot, Error> {
+        return self.snapshotPublisher()
+    }
+    
+    
 }
 
 private struct FirestoreQueryImpl: FirestoreQuery {

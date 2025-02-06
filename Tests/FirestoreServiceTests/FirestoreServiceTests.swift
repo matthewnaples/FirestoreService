@@ -31,6 +31,7 @@ final class FirestoreSubscriptionManagerTests: XCTestCase {
         var client2ReceivedItems: [MockModel] = []
 
         // Client 1 subscribes
+        subscriptionManager.subscribe(to: {$0.asQuery().}, <#T##(Result<[T], Error>) -> Void#>)
         subscriptionManager.subscribe { result in
             if case let .success(items) = result {
                 client1ReceivedItems = items
