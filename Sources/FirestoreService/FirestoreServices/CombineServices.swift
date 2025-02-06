@@ -164,6 +164,136 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
         return subscriptionID
     }
 
+    public func subscribeToThreeCollections<
+        T2: Codable,
+        T3: Codable,
+        FCollection2: FirestoreCollection,
+        FCollection3: FirestoreCollection
+    >(
+        secondCollection: FCollection2,
+        thirdCollection: FCollection3,
+        queryBuilder1: @escaping QueryBuilder2 = { $0 },
+        queryBuilder2: @escaping (FCollection2) -> FirestoreQuery,
+        queryBuilder3: @escaping (FCollection3) -> FirestoreQuery,
+        onUpdate: @escaping (Result<([T], [T2], [T3]), Error>) -> Void
+    ) -> UUID {
+        
+        let subscriptionID = UUID()
+        
+        // Build the three queries
+        let publisher1 = queryBuilder1(collection).snapshotPublisher()
+        let publisher2 = queryBuilder2(secondCollection).snapshotPublisher()
+        let publisher3 = queryBuilder3(thirdCollection).snapshotPublisher()
+        
+        // Combine them via combineLatest
+        let combinedPublisher = publisher1
+            .combineLatest(publisher2, publisher3)
+            .eraseToAnyPublisher()
+        
+        lock.lock()
+        defer { lock.unlock() }
+        
+        let cancellable = combinedPublisher
+            .sink(receiveCompletion: { completion in
+                if case let .failure(error) = completion {
+                    onUpdate(.failure(error))
+                }
+            }, receiveValue: { (snapshot1, snapshot2, snapshot3) in
+                
+                // Decode first snapshot into array of T
+                let documents1 = snapshot1.allDocuments
+                var objects1 = [T]()
+                var decodingProblems1 = [CodingProblem2]()
+                
+                for doc in documents1 {
+                    do {
+                        let obj = try doc.data(as: T.self)
+                        objects1.append(obj)
+                    } catch {
+                        decodingProblems1.append(
+                            CodingProblem2(problemQuerySnapshot: doc, error: error)
+                        )
+                    }
+                }
+                
+                // Decode second snapshot into array of T2
+                let documents2 = snapshot2.allDocuments
+                var objects2 = [T2]()
+                var decodingProblems2 = [CodingProblem2]()
+                
+                for doc in documents2 {
+                    do {
+                        let obj = try doc.data(as: T2.self)
+                        objects2.append(obj)
+                    } catch {
+                        decodingProblems2.append(
+                            CodingProblem2(problemQuerySnapshot: doc, error: error)
+                        )
+                    }
+                }
+
+                // Decode third snapshot into array of T3
+                let documents3 = snapshot3.allDocuments
+                var objects3 = [T3]()
+                var decodingProblems3 = [CodingProblem2]()
+                
+                for doc in documents3 {
+                    do {
+                        let obj = try doc.data(as: T3.self)
+                        objects3.append(obj)
+                    } catch {
+                        decodingProblems3.append(
+                            CodingProblem2(problemQuerySnapshot: doc, error: error)
+                        )
+                    }
+                }
+
+                // Check decoding thresholds
+                let ratio1 = documents1.count == 0
+                    ? 0
+                    : Double(decodingProblems1.count) / Double(documents1.count)
+                let ratio2 = documents2.count == 0
+                    ? 0
+                    : Double(decodingProblems2.count) / Double(documents2.count)
+                let ratio3 = documents3.count == 0
+                    ? 0
+                    : Double(decodingProblems3.count) / Double(documents3.count)
+                
+                // If any ratio is above the threshold, fail
+                if ratio1 >= self.decodingProblemThreshold {
+                    let error = DSError2.CouldNotDecode(
+                        "First collection had a decoding failure ratio of \(ratio1), or \(decodingProblems1.count) total.",
+                        decodingProblems1
+                    )
+                    onUpdate(.failure(error))
+                    return
+                }
+                
+                if ratio2 >= self.decodingProblemThreshold {
+                    let error = DSError2.CouldNotDecode(
+                        "Second collection had a decoding failure ratio of \(ratio2), or \(decodingProblems2.count) total.",
+                        decodingProblems2
+                    )
+                    onUpdate(.failure(error))
+                    return
+                }
+
+                if ratio3 >= self.decodingProblemThreshold {
+                    let error = DSError2.CouldNotDecode(
+                        "Third collection had a decoding failure ratio of \(ratio3), or \(decodingProblems3.count) total.",
+                        decodingProblems3
+                    )
+                    onUpdate(.failure(error))
+                    return
+                }
+                
+                // Otherwise, success with the three arrays
+                onUpdate(.success((objects1, objects2, objects3)))
+            })
+        
+        cancellables[subscriptionID] = cancellable
+        return subscriptionID
+    }
 
     public func subscribe(to queryBuilder: @escaping QueryBuilder2 = {$0},_ onUpdate: @escaping (Result<[T],Error>) -> Void) -> UUID {
         let subscriptionID = UUID()
@@ -207,6 +337,8 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
         cancellables[subscriptionID] = cancellable
         return subscriptionID
     }
+    
+    
 
     func unsubscribe(_ subscriptionID: UUID) {
         lock.lock()
