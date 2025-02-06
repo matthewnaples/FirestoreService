@@ -340,7 +340,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
     
     
 
-    func unsubscribe(_ subscriptionID: UUID) {
+    public func unsubscribe(_ subscriptionID: UUID) {
         lock.lock()
         defer { lock.unlock() }
 
@@ -349,7 +349,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
     }
 
     
-    func unsubscribeAll() {
+    public func unsubscribeAll() {
         lock.lock()
         defer { lock.unlock() }
 
