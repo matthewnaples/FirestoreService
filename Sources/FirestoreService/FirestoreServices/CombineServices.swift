@@ -192,7 +192,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                     onUpdate(.failure(error))
                 }
             }, receiveValue: { (snapshot1, snapshot2) in
-                print("value received: \((snapshot1,snapshot2))")
+//                print("value received: \((snapshot1,snapshot2))")
 
                 // Decode first snapshot into array of T
                 let documents1 = snapshot1.allDocuments
@@ -238,7 +238,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                 }
                 
                 // Otherwise, success with the two arrays
-                print("updating success with collection and document: \((objects1,obj2))")
+//                print("updating success with collection and document: \((objects1,obj2))")
                 onUpdate(.success((objects1, obj2)))
             })
         
