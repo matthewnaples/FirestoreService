@@ -85,18 +85,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
         // Combine them via combineLatest
         let combinedPublisher = publisher1
             .combineLatest(publisher2)
-            .eraseToAnyPublisher()
-        
-        lock.lock()
-        defer { lock.unlock() }
-        
-        let cancellable = combinedPublisher
-            .sink(receiveCompletion: { completion in
-                if case let .failure(error) = completion {
-                    onUpdate(.failure(error))
-                }
-            }, receiveValue: { (snapshot1, snapshot2) in
-                
+            .map { (snapshot1, snapshot2) -> Result<([T], [T2]), Error> in
                 // Decode first snapshot into array of T
                 let documents1 = snapshot1.allDocuments
                 var objects1 = [T]()
@@ -143,8 +132,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                         "First collection had a decoding failure ratio of \(ratio1), or \(decodingProblems1.count) total.",
                         decodingProblems1
                     )
-                    onUpdate(.failure(error))
-                    return
+                    return .failure(error)
                 }
                 
                 if ratio2 >= self.decodingProblemThreshold {
@@ -152,12 +140,24 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                         "Second collection had a decoding failure ratio of \(ratio2), or \(decodingProblems2.count) total.",
                         decodingProblems2
                     )
-                    onUpdate(.failure(error))
-                    return
+                    return .failure(error)
                 }
                 
-                // Otherwise, success with the two arrays
-                onUpdate(.success((objects1, objects2)))
+                return .success((objects1, objects2))
+            }
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+        
+        lock.lock()
+        defer { lock.unlock() }
+        
+        let cancellable = combinedPublisher
+            .sink(receiveCompletion: { completion in
+                if case let .failure(error) = completion {
+                    onUpdate(.failure(error))
+                }
+            }, receiveValue: { result in
+                onUpdate(result)
             })
         
         cancellables[subscriptionID] = cancellable
@@ -180,20 +180,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
         // Combine them via combineLatest
         let combinedPublisher = publisher1
             .combineLatest(publisher2)
-            .eraseToAnyPublisher()
-        
-        lock.lock()
-        defer { lock.unlock() }
-        
-        let cancellable = combinedPublisher
-            .sink(receiveCompletion: { completion in
-                print("completion received: \(completion)")
-                if case let .failure(error) = completion {
-                    onUpdate(.failure(error))
-                }
-            }, receiveValue: { (snapshot1, snapshot2) in
-//                print("value received: \((snapshot1,snapshot2))")
-
+            .map { (snapshot1, snapshot2) -> Result<([T], T2), Error> in
                 // Decode first snapshot into array of T
                 let documents1 = snapshot1.allDocuments
                 var objects1 = [T]()
@@ -216,8 +203,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                     obj2 = try snapshot2.data(as: T2.self)
                 } catch {
                     print("updating failure for document: \(error)")
-                    onUpdate(.failure(error))
-                    return
+                    return .failure(error)
                 }
             
                 // Check decoding thresholds
@@ -232,14 +218,25 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                         decodingProblems1
                     )
                     print("updating failure for collection: \(error)")
-
-                    onUpdate(.failure(error))
-                    return
+                    return .failure(error)
                 }
                 
-                // Otherwise, success with the two arrays
-//                print("updating success with collection and document: \((objects1,obj2))")
-                onUpdate(.success((objects1, obj2)))
+                return .success((objects1, obj2))
+            }
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+        
+        lock.lock()
+        defer { lock.unlock() }
+        
+        let cancellable = combinedPublisher
+            .sink(receiveCompletion: { completion in
+                print("completion received: \(completion)")
+                if case let .failure(error) = completion {
+                    onUpdate(.failure(error))
+                }
+            }, receiveValue: { result in
+                onUpdate(result)
             })
         
         cancellables[subscriptionID] = cancellable
@@ -269,18 +266,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
         // Combine them via combineLatest
         let combinedPublisher = publisher1
             .combineLatest(publisher2, publisher3)
-            .eraseToAnyPublisher()
-        
-        lock.lock()
-        defer { lock.unlock() }
-        
-        let cancellable = combinedPublisher
-            .sink(receiveCompletion: { completion in
-                if case let .failure(error) = completion {
-                    onUpdate(.failure(error))
-                }
-            }, receiveValue: { (snapshot1, snapshot2, snapshot3) in
-                
+            .map { (snapshot1, snapshot2, snapshot3) -> Result<([T], [T2], [T3]), Error> in
                 // Decode first snapshot into array of T
                 let documents1 = snapshot1.allDocuments
                 var objects1 = [T]()
@@ -346,8 +332,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                         "First collection had a decoding failure ratio of \(ratio1), or \(decodingProblems1.count) total.",
                         decodingProblems1
                     )
-                    onUpdate(.failure(error))
-                    return
+                    return .failure(error)
                 }
                 
                 if ratio2 >= self.decodingProblemThreshold {
@@ -355,8 +340,7 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                         "Second collection had a decoding failure ratio of \(ratio2), or \(decodingProblems2.count) total.",
                         decodingProblems2
                     )
-                    onUpdate(.failure(error))
-                    return
+                    return .failure(error)
                 }
 
                 if ratio3 >= self.decodingProblemThreshold {
@@ -364,12 +348,24 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
                         "Third collection had a decoding failure ratio of \(ratio3), or \(decodingProblems3.count) total.",
                         decodingProblems3
                     )
-                    onUpdate(.failure(error))
-                    return
+                    return .failure(error)
                 }
                 
-                // Otherwise, success with the three arrays
-                onUpdate(.success((objects1, objects2, objects3)))
+                return .success((objects1, objects2, objects3))
+            }
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+        
+        lock.lock()
+        defer { lock.unlock() }
+        
+        let cancellable = combinedPublisher
+            .sink(receiveCompletion: { completion in
+                if case let .failure(error) = completion {
+                    onUpdate(.failure(error))
+                }
+            }, receiveValue: { result in
+                onUpdate(result)
             })
         
         cancellables[subscriptionID] = cancellable
@@ -385,32 +381,32 @@ public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> w
         defer { lock.unlock() }
 
         let cancellable = publisher
+            .map { snapshot -> Result<[T], Error> in
+                let documents = snapshot.allDocuments
+                var resultingObjects = [T]()
+                var decodingProblems = [CodingProblem2]()
+                for doc in documents {
+                    do {
+                        let obj = try doc.data(as: T.self)
+                        resultingObjects.append(obj)
+                    }
+                    catch {
+                        decodingProblems.append(CodingProblem2(problemQuerySnapshot: doc, error: error))
+                    }
+                }
+                guard documents.count == 0 || (Double(decodingProblems.count)/Double(documents.count) < self.decodingProblemThreshold) else {
+                    return .failure(DSError2.CouldNotDecode("\(Double(decodingProblems.count)/Double(documents.count)) of all documents in the collection failed to be retrieved, or \(decodingProblems.count) total.", decodingProblems))
+                }
+                return .success(resultingObjects)
+            }
+            .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { completion in
                     if case let .failure(error) = completion {
                         onUpdate(.failure(error))
                     }
                 },
-                receiveValue: { snapshot in
-                    let documents = snapshot.allDocuments
-                    var result: Result<[T], Error>
-                    var resultingObjects = [T]()
-                    var decodingProblems = [CodingProblem2]()
-                    for doc in documents{
-                        do{
-                            let obj = try doc.data(as: T.self)
-                            resultingObjects.append(obj)
-                        }
-                        catch{
-                            decodingProblems.append(CodingProblem2(problemQuerySnapshot: doc, error: error))
-                        }
-                    }
-                    guard documents.count == 0 || (Double(decodingProblems.count)/Double(documents.count) < self.decodingProblemThreshold) else{
-                        result = .failure(DSError2.CouldNotDecode("\(Double(decodingProblems.count)/Double(documents.count)) of all documents in the collection failed to be retrieved, or \(decodingProblems.count) total.", decodingProblems))
-                        onUpdate(result)
-                        return
-                    }
-                    result = .success(resultingObjects)
+                receiveValue: { result in
                     onUpdate(result)
                 }
             )
@@ -467,8 +463,6 @@ extension Query: FirestoreQuery {
             .map { $0 as FirestoreQuerySnapshot }
             .eraseToAnyPublisher()
     }
-    
-    
 }
 
 /// A protocol that represents a Firestore-like collection
@@ -520,19 +514,6 @@ extension DocumentReference: FirestoreDocumentReference{
     }
 }
 
-private struct FirestoreQueryImpl: FirestoreQuery {
-    let query: Query
-    
-    func snapshotPublisher() -> AnyPublisher<FirestoreQuerySnapshot, Error> {
-        // Assume we have some extension or library that turns `Query` into a Combine publisher.
-        // In that publisher’s `receiveValue` closure, we can wrap the `QuerySnapshot` with a conforming struct:
-        return query.snapshotPublisher()
-        
-            .map { FirestoreQuerySnapshotImpl(snapshot: $0) }
-            .eraseToAnyPublisher()
-    }
-}
-
 private struct FirestoreQuerySnapshotImpl: FirestoreQuerySnapshot {
     let snapshot: QuerySnapshot
     
@@ -555,4 +536,3 @@ private struct FirestoreDocumentSnapshotImpl: FirestoreDocumentSnapshot {
         return document.data()
     }
 }
-
