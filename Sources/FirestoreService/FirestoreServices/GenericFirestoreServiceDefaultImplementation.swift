@@ -57,7 +57,18 @@ public class GenericFirestoreServiceDefaultImplementation<T: Identifiable & Coda
     public func delete(_ item: T, errorCallback: ((Error?)->Void)?) throws {
         try firestoreDataWriter.delete(item, errorCallback: errorCallback)
     }
-    
+    public func subscribeOnDatesBetween(start: Date, end: Date,dateFieldPath: String ,onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {
+        let subscriptionId = firestoreListener.subscribeOnDatesBetween(startDate: start, and: end, dateFieldPath: dateFieldPath) { result in
+            switch result{
+            case .success(let items):
+                print("fetched \(items.count) items of type \(type(of: T.self))")
+                onUpdate(.success(items))
+            case .failure(let err):
+                onUpdate(.failure(self.errorHandler(err)))
+            }
+        }
+        return subscriptionId
+    }
     public func subscribe(to: @escaping QueryBuilder,onUpdate: @escaping (Result<[T], Error>) -> Void) -> UUID {
         let subscriptionId =  firestoreListener.subscribe(to: to) { [unowned self] result in
             switch result{
