@@ -265,6 +265,52 @@ public class FirestoreSubscriptionListener {
         return subscriptionID
     }
 
+    
+    /// Subscribe to three collections simultaneously, with separate `T`, `T2`, and `T3` types, and separate `FCollection` types
+    public func subscribeToThreeDocuments<
+        T: Codable,
+        T2: Codable,
+        T3: Codable
+    >(
+        doc1: FirestoreDocumentReference,
+        doc2: FirestoreDocumentReference,
+        doc3: FirestoreDocumentReference,
+        onUpdate: @escaping (Result<(T, T2, T3), Error>) -> Void
+    ) -> UUID {
+        let subscriptionID = UUID()
+    
+        let publisher1 = doc1.snapshotPublisher()
+        let publisher2 = doc2.snapshotPublisher()
+        let publisher3 = doc3.snapshotPublisher()
+        
+        let combined = publisher1.combineLatest(publisher2, publisher3)
+
+        lock.lock()
+        defer { lock.unlock() }
+
+        let cancellable = combined
+            .sink(receiveCompletion: { completion in
+                if case let .failure(error) = completion {
+                    onUpdate(.failure(error))
+                }
+            }, receiveValue: { (snapshot1, snapshot2, snapshot3) in
+                // Decode snapshot1 -> [T]
+                do {
+                let item1 = try snapshot1.data(as: T.self)
+                let item2 = try snapshot2.data(as: T2.self)
+                let item3 = try snapshot3.data(as: T3.self)
+                
+                // Success with all three arrays
+                onUpdate(.success((item1, item2, item3)))
+                } catch {
+                    onUpdate(.failure(DSError2.CouldNotDecode("Failed to decode one or more documents", [])))
+                }
+
+            })
+        
+        cancellables[subscriptionID] = cancellable
+        return subscriptionID
+    }
     /// Standard unsubscribe
     public func unsubscribe(_ subscriptionID: UUID) {
         lock.lock()
