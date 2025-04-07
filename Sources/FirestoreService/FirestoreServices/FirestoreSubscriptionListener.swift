@@ -479,6 +479,7 @@ public class FirestoreSubscriptionListener {
         defer { lock.unlock() }
         cancellables[subscriptionID]?.cancel()
         cancellables.removeValue(forKey: subscriptionID)
+        print("unsubscribed \(subscriptionID) from FirestoreSubscriptionListener")
     }
     
     /// Unsubscribe all
