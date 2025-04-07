@@ -49,7 +49,7 @@ enum DSError2: Error{
 }
 
 
-
+/// Similar to `FirestoreSubscriptionListener` but is initialized with a specific collection type.
 public class FirestoreSubscriptionManager<T, FCollection: FirestoreCollection> where T: Codable {
     public typealias QueryBuilder2 = (FCollection) -> FirestoreQuery
     let decodingProblemThreshold: Double = 0.5

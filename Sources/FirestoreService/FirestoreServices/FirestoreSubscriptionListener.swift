@@ -46,40 +46,42 @@ public class FirestoreSubscriptionListener {
         defer { lock.unlock() }
 
         let cancellable = publisher
+            .map { snapshot -> Result<[T], Error> in
+                let documents = snapshot.allDocuments
+                var resultingObjects = [T]()
+                var decodingProblems = [CodingProblem2]()
+
+                for doc in documents {
+                    do {
+                        let obj = try doc.data(as: T.self)
+                        resultingObjects.append(obj)
+                    } catch {
+                        decodingProblems.append(CodingProblem2(problemQuerySnapshot: doc, error: error))
+                    }
+                }
+
+                guard documents.isEmpty ||
+                      (Double(decodingProblems.count) / Double(documents.count)
+                       < 0.5 /* or your threshold */) else {
+                    let ratio = Double(decodingProblems.count) / Double(documents.count)
+                    return .failure(
+                        DSError2.CouldNotDecode(
+                            "\(ratio * 100)% of the docs failed to decode.", decodingProblems
+                        )
+                    )
+                }
+
+                return .success(resultingObjects)
+            }
+            .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { completion in
                     if case let .failure(error) = completion {
                         onUpdate(.failure(error))
                     }
                 },
-                receiveValue: { snapshot in
-                    let documents = snapshot.allDocuments
-                    var resultingObjects = [T]()
-                    var decodingProblems = [CodingProblem2]() // same struct you defined earlier
-
-                    for doc in documents {
-                        do {
-                            let obj = try doc.data(as: T.self)
-                            resultingObjects.append(obj)
-                        } catch {
-                            decodingProblems.append(CodingProblem2(problemQuerySnapshot: doc, error: error))
-                        }
-                    }
-
-                    // Example threshold logic:
-                    guard documents.isEmpty ||
-                          (Double(decodingProblems.count) / Double(documents.count)
-                           < 0.5 /* or your threshold */) else {
-                        let ratio = Double(decodingProblems.count) / Double(documents.count)
-                        onUpdate(.failure(
-                            DSError2.CouldNotDecode(
-                                "\(ratio * 100)% of the docs failed to decode.", decodingProblems
-                            )
-                        ))
-                        return
-                    }
-
-                    onUpdate(.success(resultingObjects))
+                receiveValue: { result in
+                    onUpdate(result)
                 }
             )
 
@@ -110,11 +112,7 @@ public class FirestoreSubscriptionListener {
         defer { lock.unlock() }
 
         let cancellable = combined
-            .sink(receiveCompletion: { completion in
-                if case let .failure(error) = completion {
-                    onUpdate(.failure(error))
-                }
-            }, receiveValue: { (snapshot1, snapshot2) in
+            .map { (snapshot1, snapshot2) -> Result<([T], [T2]), Error> in
                 // Decode snapshot1 -> [T]
                 let documents1 = snapshot1.allDocuments
                 var objects1 = [T]()
@@ -145,20 +143,25 @@ public class FirestoreSubscriptionListener {
                 let threshold = 0.5
                 
                 if ratio1 >= threshold {
-                    onUpdate(.failure(
+                    return .failure(
                         DSError2.CouldNotDecode("Decoding failure ratio for first query: \(ratio1)", decodingProblems1)
-                    ))
-                    return
+                    )
                 }
                 if ratio2 >= threshold {
-                    onUpdate(.failure(
+                    return .failure(
                         DSError2.CouldNotDecode("Decoding failure ratio for second query: \(ratio2)", decodingProblems2)
-                    ))
-                    return
+                    )
                 }
 
-                // Success with both arrays
-                onUpdate(.success((objects1, objects2)))
+                return .success((objects1, objects2))
+            }
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                if case let .failure(error) = completion {
+                    onUpdate(.failure(error))
+                }
+            }, receiveValue: { result in
+                onUpdate(result)
             })
         
         cancellables[subscriptionID] = cancellable
@@ -191,11 +194,7 @@ public class FirestoreSubscriptionListener {
         defer { lock.unlock() }
 
         let cancellable = combined
-            .sink(receiveCompletion: { completion in
-                if case let .failure(error) = completion {
-                    onUpdate(.failure(error))
-                }
-            }, receiveValue: { (snapshot1, snapshot2, snapshot3) in
+            .map { (snapshot1, snapshot2, snapshot3) -> Result<([T], [T2], [T3]), Error> in
                 // Decode snapshot1 -> [T]
                 let documents1 = snapshot1.allDocuments
                 var objects1 = [T]()
@@ -239,26 +238,30 @@ public class FirestoreSubscriptionListener {
                 let threshold = 0.5
                 
                 if ratio1 >= threshold {
-                    onUpdate(.failure(
+                    return .failure(
                         DSError2.CouldNotDecode("Decoding failure ratio for first query: \(ratio1)", decodingProblems1)
-                    ))
-                    return
+                    )
                 }
                 if ratio2 >= threshold {
-                    onUpdate(.failure(
+                    return .failure(
                         DSError2.CouldNotDecode("Decoding failure ratio for second query: \(ratio2)", decodingProblems2)
-                    ))
-                    return
+                    )
                 }
                 if ratio3 >= threshold {
-                    onUpdate(.failure(
+                    return .failure(
                         DSError2.CouldNotDecode("Decoding failure ratio for third query: \(ratio3)", decodingProblems3)
-                    ))
-                    return
+                    )
                 }
 
-                // Success with all three arrays
-                onUpdate(.success((objects1, objects2, objects3)))
+                return .success((objects1, objects2, objects3))
+            }
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                if case let .failure(error) = completion {
+                    onUpdate(.failure(error))
+                }
+            }, receiveValue: { result in
+                onUpdate(result)
             })
         
         cancellables[subscriptionID] = cancellable
@@ -289,23 +292,24 @@ public class FirestoreSubscriptionListener {
         defer { lock.unlock() }
 
         let cancellable = combined
+            .map { (snapshot1, snapshot2, snapshot3) -> Result<(T, T2, T3), Error> in
+                do {
+                    let item1 = try snapshot1.data(as: T.self)
+                    let item2 = try snapshot2.data(as: T2.self)
+                    let item3 = try snapshot3.data(as: T3.self)
+                    
+                    return .success((item1, item2, item3))
+                } catch {
+                    return .failure(DSError2.CouldNotDecode("Failed to decode one or more documents", []))
+                }
+            }
+            .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
                 if case let .failure(error) = completion {
                     onUpdate(.failure(error))
                 }
-            }, receiveValue: { (snapshot1, snapshot2, snapshot3) in
-                // Decode snapshot1 -> [T]
-                do {
-                let item1 = try snapshot1.data(as: T.self)
-                let item2 = try snapshot2.data(as: T2.self)
-                let item3 = try snapshot3.data(as: T3.self)
-                
-                // Success with all three arrays
-                onUpdate(.success((item1, item2, item3)))
-                } catch {
-                    onUpdate(.failure(DSError2.CouldNotDecode("Failed to decode one or more documents", [])))
-                }
-
+            }, receiveValue: { result in
+                onUpdate(result)
             })
         
         cancellables[subscriptionID] = cancellable
