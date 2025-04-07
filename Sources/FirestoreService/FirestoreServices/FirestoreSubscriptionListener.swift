@@ -34,10 +34,16 @@ public class FirestoreSubscriptionListener {
 
     public init() { }
 
-    /// Subscribe to a single collection, specifying `T` and `FCollection` at the method level
-    public func subscribe<T: Codable>(
+    /// Subscribe to a single collection with transformation
+    /// - Parameters:
+    ///   - query: The Firestore query to subscribe to
+    ///   - transformation: Transformation closure that runs on a background thread
+    ///   - onUpdate: Callback with the transformed result on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
+    public func subscribe<T: Codable, Output>(
         query: FirestoreQuery,
-        onUpdate: @escaping (Result<[T], Error>) -> Void
+        transformation: @escaping ([T]) -> Result<Output, Error>,
+        onUpdate: @escaping (Result<Output, Error>) -> Void
     ) -> UUID {
         let subscriptionID = UUID()
         let publisher = query.snapshotPublisher()
@@ -73,6 +79,14 @@ public class FirestoreSubscriptionListener {
 
                 return .success(resultingObjects)
             }
+            .map { result -> Result<Output, Error> in
+                switch result {
+                case .success(let items):
+                    return transformation(items)
+                case .failure(let error):
+                    return .failure(error)
+                }
+            }
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { completion in
@@ -89,18 +103,41 @@ public class FirestoreSubscriptionListener {
         return subscriptionID
     }
 
-    /// Subscribe to two collections simultaneously, with separate `T` and `T2` types, and separate `FCollection` types
+    /// Subscribe to a single collection without transformation
+    /// - Parameters:
+    ///   - query: The Firestore query to subscribe to
+    ///   - onUpdate: Callback with the query result on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
+    public func subscribe<T: Codable>(
+        query: FirestoreQuery,
+        onUpdate: @escaping (Result<[T], Error>) -> Void
+    ) -> UUID {
+        return subscribe(
+            query: query,
+            transformation: { .success($0) },
+            onUpdate: onUpdate
+        )
+    }
+
+    /// Subscribe to two collections with transformation
+    /// - Parameters:
+    ///   - query1: First Firestore query
+    ///   - query2: Second Firestore query
+    ///   - transformation: Transformation closure that runs on a background thread
+    ///   - onUpdate: Callback with the transformed result on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
     public func subscribeToTwoCollections<
         T: Codable,
         T2: Codable,
         Query1: FirestoreQuery,
-        Query2: FirestoreQuery
+        Query2: FirestoreQuery,
+        Output
     >(
         query1: Query1,
         query2: Query2,
-        onUpdate: @escaping (Result<([T], [T2]), Error>) -> Void
+        transformation: @escaping (([T], [T2])) -> Result<Output, Error>,
+        onUpdate: @escaping (Result<Output, Error>) -> Void
     ) -> UUID {
-        
         let subscriptionID = UUID()
     
         let publisher1 = query1.snapshotPublisher()
@@ -155,6 +192,14 @@ public class FirestoreSubscriptionListener {
 
                 return .success((objects1, objects2))
             }
+            .map { result -> Result<Output, Error> in
+                switch result {
+                case .success(let items):
+                    return transformation(items)
+                case .failure(let error):
+                    return .failure(error)
+                }
+            }
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
                 if case let .failure(error) = completion {
@@ -168,19 +213,52 @@ public class FirestoreSubscriptionListener {
         return subscriptionID
     }
 
-    /// Subscribe to three collections simultaneously, with separate `T`, `T2`, and `T3` types, and separate `FCollection` types
+    /// Subscribe to two collections without transformation
+    /// - Parameters:
+    ///   - query1: First Firestore query
+    ///   - query2: Second Firestore query
+    ///   - onUpdate: Callback with the query results on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
+    public func subscribeToTwoCollections<
+        T: Codable,
+        T2: Codable,
+        Query1: FirestoreQuery,
+        Query2: FirestoreQuery
+    >(
+        query1: Query1,
+        query2: Query2,
+        onUpdate: @escaping (Result<([T], [T2]), Error>) -> Void
+    ) -> UUID {
+        return subscribeToTwoCollections(
+            query1: query1,
+            query2: query2,
+            transformation: { .success($0) },
+            onUpdate: onUpdate
+        )
+    }
+
+    /// Subscribe to three collections with transformation
+    /// - Parameters:
+    ///   - query1: First Firestore query
+    ///   - query2: Second Firestore query
+    ///   - query3: Third Firestore query
+    ///   - transformation: Transformation closure that runs on a background thread
+    ///   - onUpdate: Callback with the transformed result on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
     public func subscribeToThreeCollections<
         T: Codable,
         T2: Codable,
         T3: Codable,
         Query1: FirestoreQuery,
         Query2: FirestoreQuery,
-        Query3: FirestoreQuery
+        Query3: FirestoreQuery,
+        Output
     >(
         query1: Query1,
         query2: Query2,
         query3: Query3,
-        onUpdate: @escaping (Result<([T], [T2], [T3]), Error>) -> Void
+        transformation: @escaping (([T], [T2], [T3])) -> Result<Output, Error>,
+        onUpdate: @escaping (Result<Output, Error>) -> Void
     ) -> UUID {
         let subscriptionID = UUID()
     
@@ -255,6 +333,14 @@ public class FirestoreSubscriptionListener {
 
                 return .success((objects1, objects2, objects3))
             }
+            .map { result -> Result<Output, Error> in
+                switch result {
+                case .success(let items):
+                    return transformation(items)
+                case .failure(let error):
+                    return .failure(error)
+                }
+            }
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
                 if case let .failure(error) = completion {
@@ -268,17 +354,54 @@ public class FirestoreSubscriptionListener {
         return subscriptionID
     }
 
-    
-    /// Subscribe to three collections simultaneously, with separate `T`, `T2`, and `T3` types, and separate `FCollection` types
+    /// Subscribe to three collections without transformation
+    /// - Parameters:
+    ///   - query1: First Firestore query
+    ///   - query2: Second Firestore query
+    ///   - query3: Third Firestore query
+    ///   - onUpdate: Callback with the query results on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
+    public func subscribeToThreeCollections<
+        T: Codable,
+        T2: Codable,
+        T3: Codable,
+        Query1: FirestoreQuery,
+        Query2: FirestoreQuery,
+        Query3: FirestoreQuery
+    >(
+        query1: Query1,
+        query2: Query2,
+        query3: Query3,
+        onUpdate: @escaping (Result<([T], [T2], [T3]), Error>) -> Void
+    ) -> UUID {
+        return subscribeToThreeCollections(
+            query1: query1,
+            query2: query2,
+            query3: query3,
+            transformation: { .success($0) },
+            onUpdate: onUpdate
+        )
+    }
+
+    /// Subscribe to three documents with transformation
+    /// - Parameters:
+    ///   - doc1: First document reference
+    ///   - doc2: Second document reference
+    ///   - doc3: Third document reference
+    ///   - transformation: Transformation closure that runs on a background thread
+    ///   - onUpdate: Callback with the transformed result on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
     public func subscribeToThreeDocuments<
         T: Codable,
         T2: Codable,
-        T3: Codable
+        T3: Codable,
+        Output
     >(
         doc1: FirestoreDocumentReference,
         doc2: FirestoreDocumentReference,
         doc3: FirestoreDocumentReference,
-        onUpdate: @escaping (Result<(T, T2, T3), Error>) -> Void
+        transformation: @escaping ((T, T2, T3)) -> Result<Output, Error>,
+        onUpdate: @escaping (Result<Output, Error>) -> Void
     ) -> UUID {
         let subscriptionID = UUID()
     
@@ -303,6 +426,14 @@ public class FirestoreSubscriptionListener {
                     return .failure(DSError2.CouldNotDecode("Failed to decode one or more documents", []))
                 }
             }
+            .map { result -> Result<Output, Error> in
+                switch result {
+                case .success(let items):
+                    return transformation(items)
+                case .failure(let error):
+                    return .failure(error)
+                }
+            }
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
                 if case let .failure(error) = completion {
@@ -315,6 +446,33 @@ public class FirestoreSubscriptionListener {
         cancellables[subscriptionID] = cancellable
         return subscriptionID
     }
+
+    /// Subscribe to three documents without transformation
+    /// - Parameters:
+    ///   - doc1: First document reference
+    ///   - doc2: Second document reference
+    ///   - doc3: Third document reference
+    ///   - onUpdate: Callback with the document data on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
+    public func subscribeToThreeDocuments<
+        T: Codable,
+        T2: Codable,
+        T3: Codable
+    >(
+        doc1: FirestoreDocumentReference,
+        doc2: FirestoreDocumentReference,
+        doc3: FirestoreDocumentReference,
+        onUpdate: @escaping (Result<(T, T2, T3), Error>) -> Void
+    ) -> UUID {
+        return subscribeToThreeDocuments(
+            doc1: doc1,
+            doc2: doc2,
+            doc3: doc3,
+            transformation: { .success($0) },
+            onUpdate: onUpdate
+        )
+    }
+
     /// Standard unsubscribe
     public func unsubscribe(_ subscriptionID: UUID) {
         lock.lock()
