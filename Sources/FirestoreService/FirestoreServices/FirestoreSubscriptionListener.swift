@@ -473,6 +473,110 @@ public class FirestoreSubscriptionListener {
         )
     }
 
+    /// Subscribe to one collection and one document with transformation
+    /// - Parameters:
+    ///   - query: The collection query
+    ///   - doc: Document reference
+    ///   - transformation: Transformation closure that runs on a background thread
+    ///   - onUpdate: Callback with the transformed result on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
+    public func subscribeToCollectionAndDocument<
+        T: Codable,
+        T2: Codable,
+        Query: FirestoreQuery,
+        Output
+    >(
+        query: Query,
+        doc: FirestoreDocumentReference,
+        transformation: @escaping (([T], T2)) -> Result<Output, Error>,
+        onUpdate: @escaping (Result<Output, Error>) -> Void
+    ) -> UUID {
+        let subscriptionID = UUID()
+    
+        let collectionPublisher = query.snapshotPublisher()
+        let docPublisher = doc.snapshotPublisher()
+        
+        let combined = collectionPublisher.combineLatest(docPublisher)
+
+        lock.lock()
+        defer { lock.unlock() }
+
+        let cancellable = combined
+            .map { (collectionSnapshot, docSnapshot) -> Result<([T], T2), Error> in
+                // Decode collection -> [T]
+                let documents = collectionSnapshot.allDocuments
+                var objects = [T]()
+                var decodingProblems = [CodingProblem2]()
+                for doc in documents {
+                    do {
+                        objects.append(try doc.data(as: T.self))
+                    } catch {
+                        decodingProblems.append(CodingProblem2(problemQuerySnapshot: doc, error: error))
+                    }
+                }
+
+                // Check collection decoding threshold
+                let ratio = documents.isEmpty ? 0 : Double(decodingProblems.count) / Double(documents.count)
+                let threshold = 0.5
+                
+                if ratio >= threshold {
+                    return .failure(
+                        DSError2.CouldNotDecode("Decoding failure ratio for collection: \(ratio)", decodingProblems)
+                    )
+                }
+
+                // Decode document
+                do {
+                    let item = try docSnapshot.data(as: T2.self)
+                    return .success((objects, item))
+                } catch {
+                    return .failure(DSError2.CouldNotDecode("Failed to decode document", []))
+                }
+            }
+            .map { result -> Result<Output, Error> in
+                switch result {
+                case .success(let items):
+                    return transformation(items)
+                case .failure(let error):
+                    return .failure(error)
+                }
+            }
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                if case let .failure(error) = completion {
+                    onUpdate(.failure(error))
+                }
+            }, receiveValue: { result in
+                onUpdate(result)
+            })
+        
+        cancellables[subscriptionID] = cancellable
+        return subscriptionID
+    }
+
+    /// Subscribe to one collection and one document without transformation
+    /// - Parameters:
+    ///   - query: The collection query
+    ///   - doc: Document reference
+    ///   - onUpdate: Callback with the collection and document data on the main thread
+    /// - Returns: Subscription token that can be used to unsubscribe
+    public func subscribeToCollectionAndDocument<
+        T: Codable,
+        T2: Codable,
+        Query: FirestoreQuery
+    >(
+        query: Query,
+        doc: FirestoreDocumentReference,
+        onUpdate: @escaping (Result<([T], T2), Error>) -> Void
+    ) -> UUID {
+        return subscribeToCollectionAndDocument(
+            query: query,
+            doc: doc,
+            transformation: { .success($0) },
+            onUpdate: onUpdate
+        )
+    }
+
     /// Subscribe to one collection and two documents with transformation
     /// - Parameters:
     ///   - query: The collection query
@@ -575,7 +679,7 @@ public class FirestoreSubscriptionListener {
     >(
         query: Query,
         doc1: FirestoreDocumentReference,
-        doc2: FirestoreDocumentReference,ow
+        doc2: FirestoreDocumentReference,
         onUpdate: @escaping (Result<([T], T2, T3), Error>) -> Void
     ) -> UUID {
         return subscribeToCollectionAndTwoDocuments(
